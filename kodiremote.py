@@ -13,13 +13,19 @@ kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
 
 def inputAction(action):
-    payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":'+'"{}"'.format(action)+'}}'
+    payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":"'+action+'"}}'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    if r.status_code != 200:
+        print(r.text)
+
+def updateAV(library):
+    payload = '{"id": "1", "jsonrpc": "2.0", "method": "'+library+'.Scan"}}'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
 
 def sendText(text):
-    payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.SendText","params":{"text":'+'"{}"'.format(text)+'}}'
+    payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.SendText","params":{"text":"'+text+'"}}'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
@@ -31,6 +37,7 @@ def getWindowID():
         print(r.text)
     return r.json()['result']['currentwindow']['id']
 
+
 try:
     t = Terminal()
     headers = {'Content-Type': 'application/json'}
@@ -38,7 +45,7 @@ try:
 
     if len(args) == 0:
         debug = False
-        print(t.bold_blue("Kodi Terminal Remote; F1 for help; q to quit"))
+        print(t.bold_blue("Kodi Terminal Remote;\nF1 for help; q to quit"))
         while True:
             if getWindowID() == 10103:
                 userIn = input(t.bold_blue("Enter text: "))
@@ -58,11 +65,12 @@ try:
 
                 elif keyIn.name == 'KEY_F1':
                     print(t.center(t.bold_blue("Controls:")))
-                    print(t.center("H,h,j,k,l : back,left,down,up,right"))
-                    print(t.center("[,] : previous,next in playlsit"))
-                    print(t.center("c,i,-,= : context,info,voldown,volup"))
+                    print(t.center("H h j k l : back left down up right"))
+                    print(t.center("[ ] space x : previous next pause stop"))
+                    print(t.center("c i - = 0 : context info voldown volup mute"))
+                    print(t.center("u U : Video Audio library update"))
                     print(t.center("ESC : switch to/from media view"))
-                    print(t.center("d,q : debug,quit"))
+                    print(t.center("d q : debug quit"))
 
                 # Actions
                 elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
@@ -73,6 +81,9 @@ try:
                     inputAction("skipnext")
                 elif keyIn == '[':
                     inputAction("skipprevious")
+                elif keyIn == 'x':
+                    inputAction("stop")
+
                 elif keyIn == 'H':
                     inputAction("back")
                 elif keyIn == 'h':
@@ -87,14 +98,23 @@ try:
                     inputAction("up")
                 elif keyIn == 'j':
                     inputAction("down")
+                
                 elif keyIn == 'c':
                     inputAction("contextmenu")
                 elif keyIn == 'i':
                     inputAction("info")
+
                 elif keyIn == '-':
                     inputAction("volumedown")
                 elif keyIn == '=':
                     inputAction("volumeup")
+                elif keyIn == '0':
+                    inputAction("mute")
+                
+                elif keyIn == 'u':
+                    updateAV("VideoLibrary")
+                elif keyIn == 'U':
+                    updateAV("AudioLibrary")
 
                 elif keyIn.name == 'KEY_ENTER':
                     if getWindowID() != 10120:
