@@ -2,23 +2,33 @@
 from blessed import Terminal
 import sys
 import requests
+import configparser
+from os import getenv
+from os import path
 
+home = getenv("HOME")
+config = configparser.ConfigParser() #initializing config parser object
+config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file to config parser object
+kodiHost = config['settings']['host']
+kodiPort = config['settings']['port']
 
 def inputAction(action):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":'+'"{}"'.format(action)+'}}'
-    r = requests.post("http://192.168.1.4:8080/jsonrpc", data=payload, headers=headers)
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
 
 def sendText(text):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.SendText","params":{"text":'+'"{}"'.format(text)+'}}'
-    r = requests.post("http://192.168.1.4:8080/jsonrpc", data=payload, headers=headers)
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
 
 def getWindowID():
     payload = '{ "id": "1", "jsonrpc": "2.0", "method": "GUI.GetProperties", "params":{"properties":["currentwindow"]} }'
-    r = requests.post("http://192.168.1.4:8080/jsonrpc", data=payload, headers=headers)
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    if r.status_code != 200:
+        print(r.text)
     return r.json()['result']['currentwindow']['id']
 
 try:
@@ -28,7 +38,7 @@ try:
 
     if len(args) == 0:
         debug = False
-        print(t.bold_blue("Kodi Terminal Remote"))
+        print(t.bold_blue("Kodi Terminal Remote; F1 for help; q to quit"))
         while True:
             if getWindowID() == 10103:
                 userIn = input(t.bold_blue("Enter text: "))
@@ -50,7 +60,6 @@ try:
                     print(t.center(t.bold_blue("Controls:")))
                     print(t.center("Vi Keybindings for navigation, all else default."))
                     print(t.center("d: debug"))
-                    print(t.center("q: quit"))
                     print(t.center("ESC: switch to/from video"))
 
                 # Actions

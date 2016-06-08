@@ -1,6 +1,6 @@
 #!/bin/bash
 APP=$HOME/.kodiremote/
-CONFIG="$APP"kodiremote.cfg
+CONFIG="$APP"kodiremote.ini
 BINLOC=/usr/local/bin/kodiremote
 
 if [ "$(id -u)" == "0" ]; then
@@ -59,9 +59,9 @@ else
 
     if ! [[ -e $CONFIG ]]; then
         echo "Copying config..."
-        cp -p kodiremote.cfg $CONFIG
+        cp -p kodiremote.ini $CONFIG
     else
-        cp -p kodiremote.cfg $CONFIG.default
+        cp -p kodiremote.ini $CONFIG.default
     fi
 
     echo "Done."
