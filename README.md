@@ -1,2 +1,6 @@
+# KodiRemote
 
-It's a remote for Kodi from the command line.
+Name in beta.
+
+Configure with $HOME/.kodiremote/kodiremote.ini
+Just run and use! Vi keybindings for navigation by default. May make them configurable later.

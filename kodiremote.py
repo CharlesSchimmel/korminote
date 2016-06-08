@@ -58,7 +58,7 @@ try:
 
                 elif keyIn.name == 'KEY_F1':
                     print(t.center(t.bold_blue("Controls:")))
-                    print(t.center("Vi Keybindings for navigation, all else default."))
+                    print(t.center("H,h,j,k,l : back,left,down,up,right"))
                     print(t.center("d: debug"))
                     print(t.center("ESC: switch to/from video"))
 
