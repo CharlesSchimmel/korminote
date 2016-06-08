@@ -59,11 +59,13 @@ try:
                 elif keyIn.name == 'KEY_F1':
                     print(t.center(t.bold_blue("Controls:")))
                     print(t.center("H,h,j,k,l : back,left,down,up,right"))
-                    print(t.center("d: debug"))
-                    print(t.center("ESC: switch to/from video"))
+                    print(t.center("[,] : previous,next in playlsit"))
+                    print(t.center("c,i,-,= : context,info,voldown,volup"))
+                    print(t.center("ESC : switch to/from media view"))
+                    print(t.center("d,q : debug,quit"))
 
                 # Actions
-                elif keyIn.name == 'KEY_ESCAPE':
+                elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
                     inputAction("fullscreen")
                 elif keyIn == ' ':
                     inputAction("pause")
