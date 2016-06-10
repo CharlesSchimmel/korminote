@@ -6,7 +6,8 @@ import configparser
 from os import getenv
 from os import path
 
-home = getenv("HOME") config = configparser.ConfigParser() #initializing config parser object
+home = getenv("HOME")
+config = configparser.ConfigParser() #initializing config parser object
 config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file to config parser object
 kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
