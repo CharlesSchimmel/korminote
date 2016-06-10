@@ -6,8 +6,7 @@ import configparser
 from os import getenv
 from os import path
 
-home = getenv("HOME")
-config = configparser.ConfigParser() #initializing config parser object
+home = getenv("HOME") config = configparser.ConfigParser() #initializing config parser object
 config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file to config parser object
 kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
@@ -116,6 +115,12 @@ try:
                 elif keyIn == 'U':
                     updateAV("AudioLibrary")
 
+                elif keyIn == 'u':
+                    updateAV("VideoLibrary")
+                elif keyIn == 'U':
+                    updateAV("AudioLibrary")
+
+
                 elif keyIn.name == 'KEY_ENTER':
                     if getWindowID() != 10120:
                         inputAction("select")
@@ -125,5 +130,6 @@ try:
 
     elif len(args) == 1:
         inputAction(args[0])
-except:
+except (OSError,ConnectionError):
+    print("Cannot find Kodi server. Have you checked your config file?")
     pass
