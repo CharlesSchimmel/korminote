@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from blessed import Terminal
 import sys
 import requests
@@ -38,9 +39,8 @@ def getWindowID():
         print(r.text)
     return r.json()['result']['currentwindow']['id']
 
-def getProperties():
-    player = getPlayerID()
-    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetProperties", "params":{"playerid":'+player+',"properties":["time","totaltime","percentage","type","speed"]} }'
+def getProperties(playerid):
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetProperties", "params":{"playerid":'+playerid+',"properties":["time","totaltime","percentage","type","speed"]} }'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
@@ -54,27 +54,53 @@ def getPlayerID():
     except (IndexError):
         return False
 
+def getTitle(playerid):
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetItem", "params":{"playerid":'+playerid+',"properties":["title","artist","showtitle"]} }'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    title = r.json()['result']['item']['title']
+    try:
+        artist = r.json()['result']['item']['showtitle']
+    except:
+        artist = r.json()['result']['item']['artist'][0]
+    return title,artist
+
+def getTimes(curProperties):
+    if curProperties['result']['totaltime']['hours'] == 0:
+        curTime =  "{}:{}".format(curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
+        totalTime = "{}:{}".format(curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
+    else:
+        curTime =  "{}:{}:{}".format(curProperties['result']['time']['hours'],curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
+        totalTime = "{}:{}:{}".format(curProperties['result']['totaltime']['hours'],curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
+    return curTime,totalTime
 
 try:
     t = Terminal()
     args = sys.argv[1:]
-    print(t.enter_fullscreen(),t.clear(),t.bold_blue("Kodi Terminal Remote;\nF1 for help; q to quit"))
+    print(t.enter_fullscreen(),t.clear(),t.center(t.bold_blue("Kodi Terminal Remote;F1 for help; q to quit")))
     print()
 
     if len(args) == 0:
         debug = False
         while True:
-            if getPlayerID() != False:
-                if getProperties()['result']['speed'] == 0:
-                    with t.location(0, 2):
-                        print("[paused]")
-                    sys.stdout.write("\rProgress: {:.1f}% ".format(getProperties()['result']['percentage']))
-                    sys.stdout.flush()
+            playerid = getPlayerID()
+            curProperties = getProperties(playerid)
+            progPerct = curProperties['result']['percentage']/100
+            progBar = int(progPerct*t.width)
+            curTime,totalTime = getTimes(curProperties)
+            title,artist = getTitle(playerid)
+            if playerid != False:
+                with t.location(0, 2):
+                    print("{} - {}".format(title,artist))
+                if curProperties['result']['speed'] == 0:
+                    with t.location(0, 3):
+                        print("paused - {}/{}".format(curTime,totalTime)," "*t.width)
+                    with t.location(0,4):
+                        print("━"*progBar," "*t.width)
                 else:
-                    with t.location(0, 2):
-                        print('                       ')
-                    sys.stdout.write("\rProgress: {:.1f}%".format(getProperties()['result']['percentage']))
-                    sys.stdout.flush()
+                    with t.location(0, 3):
+                        print("playing - {}/{}".format(curTime,totalTime)," "*t.width)
+                    with t.location(0, 4):
+                        print("━"*progBar+"┈"*(t.width - progBar))
 
             if getWindowID() == 10103:
                 userIn = input(t.bold_blue("Enter text: "))
