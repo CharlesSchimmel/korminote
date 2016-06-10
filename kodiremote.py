@@ -6,10 +6,12 @@ import configparser
 from os import getenv
 from os import path
 
-home = getenv("HOME") config = configparser.ConfigParser() #initializing config parser object
+home = getenv("HOME") 
+config = configparser.ConfigParser() #initializing config parser object
 config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file to config parser object
 kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
+headers = {'Content-Type': 'application/json'}
 
 def inputAction(action):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":"'+action+'"}}'
@@ -36,16 +38,44 @@ def getWindowID():
         print(r.text)
     return r.json()['result']['currentwindow']['id']
 
+def getProperties():
+    player = getPlayerID()
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetProperties", "params":{"playerid":'+player+',"properties":["time","totaltime","percentage","type","speed"]} }'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    if r.status_code != 200:
+        print(r.text)
+    return r.json()
+
+def getPlayerID():
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetActivePlayers" }'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    try:
+        return str(r.json()['result'][0]['playerid'])
+    except (IndexError):
+        return False
+
 
 try:
     t = Terminal()
-    headers = {'Content-Type': 'application/json'}
     args = sys.argv[1:]
+    print(t.enter_fullscreen(),t.clear(),t.bold_blue("Kodi Terminal Remote;\nF1 for help; q to quit"))
+    print()
 
     if len(args) == 0:
         debug = False
-        print(t.bold_blue("Kodi Terminal Remote;\nF1 for help; q to quit"))
         while True:
+            if getPlayerID() != False:
+                if getProperties()['result']['speed'] == 0:
+                    with t.location(0, 2):
+                        print("[paused]")
+                    sys.stdout.write("\rProgress: {:.1f}% ".format(getProperties()['result']['percentage']))
+                    sys.stdout.flush()
+                else:
+                    with t.location(0, 2):
+                        print('                       ')
+                    sys.stdout.write("\rProgress: {:.1f}%".format(getProperties()['result']['percentage']))
+                    sys.stdout.flush()
+
             if getWindowID() == 10103:
                 userIn = input(t.bold_blue("Enter text: "))
                 sendText(userIn)
@@ -86,11 +116,11 @@ try:
                 elif keyIn == 'H':
                     inputAction("back")
                 elif keyIn == 'h':
-                    if getWindowID() == 12005:
+                    if getWindowID() == 12005 or getWindowID() == 12006:
                         inputAction("stepback")
                     inputAction("left")
                 elif keyIn == 'l':
-                    if getWindowID() == 12005:
+                    if getWindowID() == 12005 or getWindowID() == 12006:
                         inputAction("stepforward")
                     inputAction("right")
                 elif keyIn == 'k':
