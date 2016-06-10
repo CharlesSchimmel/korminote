@@ -14,7 +14,6 @@ config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file t
 kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
 headers = {'Content-Type': 'application/json'}
-debug = False
 
 def inputAction(action):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":"'+action+'"}}'
@@ -22,11 +21,13 @@ def inputAction(action):
     if r.status_code != 200:
         print(r.text)
 
+
 def updateAV(library):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "'+library+'.Scan"}}'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
+
 
 def sendText(text):
     payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.SendText","params":{"text":"'+text+'"}}'
@@ -34,12 +35,14 @@ def sendText(text):
     if r.status_code != 200:
         print(r.text)
 
+
 def getWindowID():
     payload = '{ "id": "1", "jsonrpc": "2.0", "method": "GUI.GetProperties", "params":{"properties":["currentwindow"]} }'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     if r.status_code != 200:
         print(r.text)
     return r.json()['result']['currentwindow']['id']
+
 
 
 def getProperties(playerid):
@@ -50,6 +53,7 @@ def getProperties(playerid):
     return r.json()
 
 
+
 def getPlayerID():
     payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetActivePlayers" }'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
@@ -57,6 +61,7 @@ def getPlayerID():
         return str(r.json()['result'][0]['playerid'])
     except (IndexError):
         return False
+
 
 def getTitle(playerid):
     payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetItem", "params":{"playerid":'+playerid+',"properties":["title","artist","showtitle"]} }'
@@ -68,6 +73,7 @@ def getTitle(playerid):
         artist = r.json()['result']['item']['showtitle']
     return title,artist
 
+
 def getTimes(curProperties):
     if curProperties['result']['totaltime']['hours'] == 0:
         curTime =  "{}:{:02d}".format(curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
@@ -78,8 +84,10 @@ def getTimes(curProperties):
     times = "{}/{}".format(curTime,totalTime)
     return times
 
+
 def keyParse(keyIn):
     if keyIn == 'q':
+        print(t.exit_fullscreen())
         sys.exit(0)
 
     elif keyIn.name == 'KEY_F1':
@@ -152,6 +160,7 @@ def keyParse(keyIn):
         else:
             inputAction("select")
 
+
 def textPrompt(t):
     with t.location(x=0,y=5):
         print(t.bold_blue("▒"*(t.width//2)))
@@ -185,13 +194,13 @@ try:
 
                 with t.location(x=0, y=2):
                     if artist != '':
-                        print(t.center("{} - {}".format(title,artist)))
+                        print(t.center(t.bold(title) +" - {}".format(artist)))
                     else: 
-                        print(t.center("[paused] {}".format(title)))
+                        print(t.center(t.bold(title)))
 
                 if curProperties['result']['speed'] == 0:
                     with t.location(x=0, y=4):
-                        print(t.white("━")*progBar+"┈"*(progWidth - progBar)+times)
+                        print(t.white("━"*progBar+"┈"*(progWidth - progBar))+times)
 
                 else:
                     with t.location(x=0, y=4):
