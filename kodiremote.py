@@ -235,10 +235,6 @@ def nowPlayingView():
             with t.location(x=0, y=4):
                 print(t.red("━"*progBar+"╉")+"┈"*(progWidth - progBar-1)+times)
 
-        if playlist = True:
-            playlistView()
-
-
     else:
         with t.location(x=0, y=2):
             print(t.center(t.bold("Play something!")))
