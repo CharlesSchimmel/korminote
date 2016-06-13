@@ -64,24 +64,30 @@ def getPlayerID():
 
 
 def getTitle(playerid):
-    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetItem", "params":{"playerid":'+playerid+',"properties":["title","artist","showtitle"]} }'
-    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
-    title = r.json()['result']['item']['title']
-    if 'showtitle' not in r.json()['result']['item']:
-        artist = r.json()['result']['item']['artist'][0]
-    else:
-        artist = r.json()['result']['item']['showtitle']
-    return title,artist
+    try:
+        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetItem", "params":{"playerid":'+playerid+',"properties":["title","artist","showtitle"]} }'
+        r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+        title = r.json()['result']['item']['title']
+        if 'showtitle' not in r.json()['result']['item']:
+            artist = r.json()['result']['item']['artist'][0]
+        else:
+            artist = r.json()['result']['item']['showtitle']
+        return title,artist
+    except:
+        return "null","null"
 
 
 def getTimes(curProperties):
-    if curProperties['result']['totaltime']['hours'] == 0:
-        curTime =  "{}:{:02d}".format(curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
-        totalTime = "{}:{:02d}".format(curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
-    else:
-        curTime =  "{}:{}:{:02d}".format(curProperties['result']['time']['hours'],curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
-        totalTime = "{}:{}:{:02d}".format(curProperties['result']['totaltime']['hours'],curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
-    times = "{}/{}".format(curTime,totalTime)
+    try:
+        if curProperties['result']['totaltime']['hours'] == 0:
+            curTime =  "{}:{:02d}".format(curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
+            totalTime = "{}:{:02d}".format(curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
+        else:
+            curTime =  "{}:{}:{:02d}".format(curProperties['result']['time']['hours'],curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
+            totalTime = "{}:{}:{:02d}".format(curProperties['result']['totaltime']['hours'],curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
+        times = "{}/{}".format(curTime,totalTime)
+    except:
+        return "00:00/00:00"
     return times
 
 
@@ -171,52 +177,109 @@ def textPrompt(t):
     return usrIn
 
 
+def getRecentEps():
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes" }'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    try:
+        return r.json()['result']['episodes']
+    except (IndexError):
+        return False
+
+def getPlaylistItem():
+    try:
+        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Playlist.GetItems", "params":{"playlistid":0} }'
+        r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+        toReturn = r.json()['result']['items']
+    except:
+        try:
+            payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Playlist.GetItems", "params":{"playlistid":1} }'
+            r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+            toReturn = r.json()['result']['items']
+        except:
+            payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Playlist.GetItems", "params":{"playlistid":2} }'
+            r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+            toReturn = r.json()['result']['items']
+    return toReturn
+
+def nowPlayingView():
+    with t.location(y=0,x=0):
+        print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
+
+    print(t.move(0,0))
+
+    playerid = getPlayerID()
+    if playerid != False:
+        curProperties = getProperties(playerid)
+        times = getTimes(curProperties)
+        title,artist = getTitle(playerid)
+        progPerct = curProperties['result']['percentage']/100
+        progWidth = t.width - len(times)
+        progBar = int(progPerct*progWidth)
+
+
+        with t.location(y=2):
+            if artist != '':
+                print(t.center(t.bold(title) +" - {}".format(artist)))
+            else: 
+                print(t.center(t.bold(title)))
+
+        if curProperties['result']['speed'] == 0:
+            with t.location(x=0, y=3):
+                print(t.center("[paused]"))
+            with t.location(x=0, y=4):
+                print("┈"*progBar+t.red("┃")+"┈"*(progWidth - progBar-1)+times)
+
+        else:
+            with t.location(x=0, y=3):
+                print(t.center(" "))
+            with t.location(x=0, y=4):
+                print(t.red("━"*progBar+"╉")+"┈"*(progWidth - progBar-1)+times)
+
+        if playlist = True:
+            playlistView()
+
+
+    else:
+        with t.location(x=0, y=2):
+            print(t.center(t.bold("Play something!")))
+
+    if getWindowID() == 10103:
+        sendText(textPrompt(t))
+
+    with t.raw(): 
+        keyIn = t.inkey(1)
+        keyParse(keyIn)
+
+
+def playlistView():
+    try: 
+        playlist = getPlaylistItem()
+        playlistItems = [ x['label'] for x in playlist ]
+        # print(playlistItems)
+        if len(playlistItems) > 1:
+            playNum = playlistItems.index(title) - 3 
+            playlist = playlistItems[playNum:]
+            playlist = playlist[playNum:]
+
+            for i in range(len(playlist)+6,t.height):
+                playlist.append(" "*t.height)
+            for i in playlist[:t.height-7]:
+                with t.location(y=6+playlist.index(i)):
+                    if i == title:
+                        print(t.center(t.bold(i)))
+                    else:
+                        print(t.center(i))
+    except:
+        pass
+
 try:
-    t = Terminal()
     args = sys.argv[1:]
-    print(t.enter_fullscreen(),t.clear())
     if len(args) == 0:
-        while True:
-            with t.location(y=0,x=0):
-                print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
-
-            print(t.move(0,0))
-
-            playerid = getPlayerID()
-
-            if playerid != False:
-                curProperties = getProperties(playerid)
-                times = getTimes(curProperties)
-                title,artist = getTitle(playerid)
-                progPerct = curProperties['result']['percentage']/100
-                progWidth = t.width - len(times)
-                progBar = int(progPerct*progWidth)
-
-                with t.location(x=0, y=2):
-                    if artist != '':
-                        print(t.center(t.bold(title) +" - {}".format(artist)))
-                    else: 
-                        print(t.center(t.bold(title)))
-
-                if curProperties['result']['speed'] == 0:
-                    with t.location(x=0, y=4):
-                        print(t.white("━"*progBar+"┈"*(progWidth - progBar))+times)
-
-                else:
-                    with t.location(x=0, y=4):
-                        print(t.red("━")*progBar+"┈"*(progWidth - progBar)+times)
-
-
-            else:
-                with t.location(x=0, y=2):
-                    print(t.center(t.bold("Play something!")))
-
-            if getWindowID() == 10103:
-                sendText(textPrompt(t))
-
-            with t.raw(): 
-                keyIn = t.inkey(1)
-                keyParse(keyIn)
+        t = Terminal()
+        with t.hidden_cursor(): 
+            print(t.enter_fullscreen(),t.clear())
+            while True:
+                nowPlayingView()
 
     elif len(args) == 1:
         inputAction(args[0])

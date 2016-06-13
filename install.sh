@@ -52,7 +52,7 @@ else
     #cp will overwrite
     cp -p kodiremote.py $APP
 
-    echo "Making symlink to /usr/local/bin/kodiremote"
+    echo -n "Making symlink to /usr/local/bin/kodiremote..."
     sudo rm $BINLOC
     sudo ln -s "$APP"kodiremote.py $BINLOC
 
