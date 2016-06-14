@@ -351,7 +351,7 @@ def helpView():
         print(t.center("c i - = 0 : context info voldown volup mute"))
         print(t.center("u U : Video Audio library update"))
         print(t.center("ESC : switch to/from media view"))
-        print(t.center("F1 F5 q : help clear quit"))
+        print(t.center("F1 F2 F5 q : help recently added episodes clear quit"))
     while True:
         with t.raw(): 
             keyIn = t.inkey(1)
