@@ -7,6 +7,8 @@ import requests
 import configparser
 from os import getenv
 from os import path
+from time import sleep, time
+import logging
 
 
 def inputAction(action):
@@ -88,7 +90,7 @@ def getRecentEps():
     payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes" }'
     r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
     try:
-        return r.json()['result']['episodes']
+        return r.json()
     except (IndexError):
         return False
 
@@ -108,6 +110,17 @@ def getPlaylistItem():
             toReturn = r.json()['result']['items']
     return toReturn
 
+def getEpDetails(episodeid):
+    episodeid = str(episodeid)
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodeDetails", "params":{"episodeid":'+episodeid+',"properties":["file"]} }'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    return r.json()['result']['episodedetails']
+
+def openFile(targetFile):
+    payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.Open", "params":{"item":{"file":"'+targetFile+'"}}}'
+    r = requests.post("http://{}:{}/jsonrpc".format(kodiHost,kodiPort), data=payload, headers=headers)
+    return r.json()
+
 def keyParse(keyIn):
     if keyIn == 'q':
         print(t.exit_fullscreen())
@@ -117,9 +130,17 @@ def keyParse(keyIn):
         print(t.exit_fullscreen())
         helpView()
     
-    elif keyIn.name == 'KEY_F2':
+    elif keyIn.name == 'KEY_F5':
         with t.location(y=6):
             print(t.clear())
+
+    elif keyIn.name == 'KEY_F2':
+        recentEpsList = getRecentEps()['result']['episodes']
+        recentEpsInfo = [ getEpDetails(x['episodeid']) for x in recentEpsList]
+        recentEpsList = [ x['label'] for x in recentEpsInfo]
+        selectionLabel,selectionIndex = menuView(recentEpsList,t)
+        if selectionLabel != False and selectionIndex != False:
+            openFile(recentEpsInfo[selectionIndex]['file'])
 
     # Actions
     elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
@@ -191,11 +212,26 @@ def textPrompt(t):
 
 def nowPlayingView():
     print(t.enter_fullscreen(),t.clear())
+    with t.location(y=0,x=0):
+        print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
     while True:
-        with t.location(y=0,x=0):
-            print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
+        with t.raw(): 
+            keyIn = t.inkey(1)
+            keyParse(keyIn)
 
-        print(t.move(0,0))
+        if int(time()) % 10 == 0:
+            # "Flush" the padding areas and title every few seconds.
+            # If the user resizes, stuff can get stuck in there as blessed doesn't redraw unless asked
+            # print(t.clear())
+            with t.location(y=0,x=0):
+                print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
+            # If the user resizes stuff can get stuck in the buffer. 
+            with t.location(y=1):
+                print(t.center(""))
+            with t.location(y=5):
+                print(t.center(""))
+            print(t.move(0,0))
+
 
         playerid = getPlayerID()
         if playerid != False:
@@ -205,7 +241,12 @@ def nowPlayingView():
             progPerct = curProperties['result']['percentage']/100
             progWidth = t.width - len(times)
             progBar = int(progPerct*progWidth)
-            playlistView(title)
+            if displayPlaylist in ['true','True']:
+                if int(time()) % 2 == 0:
+                    try:
+                        playlistView(title)
+                    except:
+                        pass
 
 
             with t.location(y=2):
@@ -233,10 +274,6 @@ def nowPlayingView():
         if getWindowID() == 10103:
             sendText(textPrompt(t))
 
-        with t.raw(): 
-            keyIn = t.inkey(1)
-            keyParse(keyIn)
-
 
 def playlistView(title):
     playlist = getPlaylistItem()
@@ -256,7 +293,7 @@ def playlistView(title):
             for i in playlist[:t.height-7]:
                 with t.location(y=6+playlist.index(i)):
                     if i == title:
-                        print(t.center(t.bold(i)))
+                        print(t.center(t.bold(t.white_on_black(i))))
                     else:
                         print(t.center(i))
         else:
@@ -297,7 +334,7 @@ def menuView(options,term):
         with term.raw():
             key = term.inkey(1)
             if key == "q":
-                return False
+                return False,False
             elif key.name == "KEY_UP" or key == 'k':
                 print(term.move_up(),end="")
             elif key.name == "KEY_DOWN" or key == 'j':
@@ -314,7 +351,7 @@ def helpView():
         print(t.center("c i - = 0 : context info voldown volup mute"))
         print(t.center("u U : Video Audio library update"))
         print(t.center("ESC : switch to/from media view"))
-        print(t.center("F1 F2 q : help clear quit"))
+        print(t.center("F1 F5 q : help clear quit"))
     while True:
         with t.raw(): 
             keyIn = t.inkey(1)
@@ -323,11 +360,13 @@ def helpView():
                 print(t.clear)
                 break
 
+
 home = getenv("HOME")
 config = configparser.ConfigParser() #initializing config parser object
 config.read('{}/.kodiremote/kodiremote.ini'.format(home)) #sending config file to config parser object
 kodiHost = config['settings']['host']
 kodiPort = config['settings']['port']
+displayPlaylist = config['settings']['playlist']
 headers = {'Content-Type': 'application/json'}
 
 try:
@@ -339,10 +378,17 @@ try:
 
     elif len(args) >= 1:
         if 'h' in args or 'help' in args or '--help' in args or '-help' in args:
+            print("Navigation is hjkl, H for back, enter to select. F1 for help screen.")
             print("Run on its own or in one-shot mode with input action arguments.")
             print("Useful ones include left,right,down,up,pause,skipnext,skipprevious.")
             print("You can find all valid input action arguments here:")
             print("http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
+            recentEpsList = getRecentEps()['result']['episodes']
+            recentEpsInfo = [ getEpDetails(x['episodeid']) for x in recentEpsList]
+            recentEpsList = [ x['label'] for x in recentEpsInfo]
+            t = Terminal()
+            print(menuView(recentEpsList,t))
+            print(recentEpsInfo)
         else:
             for i in args:
                 print(inputAction(i))
