@@ -32,7 +32,7 @@ else
     fi
 
     pip3 show blessed >/dev/null 2>&1
-    if [[ $? -ne 0 ]]; then # Either pip3 isn't installed or requests isn't installed.
+    if [[ $? -ne 0 ]]; then # Pip3 returns 0 if show works; blessed installed
         echo "Blessed is not installed. May I install it for you? [Y/n]"
         read usrIn
         if [[ usrIn -eq '' ]] || [[ usrIn -eq 'y' ]] || [[ usrIn -eq 'Y' ]]; then
