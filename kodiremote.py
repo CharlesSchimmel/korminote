@@ -8,7 +8,7 @@ import configparser
 from os import getenv
 from os import path
 from time import sleep, time
-import logging
+# import logging
 
 
 def inputAction(action):
@@ -215,22 +215,20 @@ def nowPlayingView():
     with t.location(y=0,x=0):
         print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
     while True:
-        with t.raw(): 
+        print(t.move(0,0))
+        with t.cbreak(): 
             keyIn = t.inkey(1)
             keyParse(keyIn)
 
         if int(time()) % 10 == 0:
             # "Flush" the padding areas and title every few seconds.
             # If the user resizes, stuff can get stuck in there as blessed doesn't redraw unless asked
-            # print(t.clear())
             with t.location(y=0,x=0):
                 print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
-            # If the user resizes stuff can get stuck in the buffer. 
             with t.location(y=1):
                 print(t.center(""))
             with t.location(y=5):
                 print(t.center(""))
-            print(t.move(0,0))
 
 
         playerid = getPlayerID()
@@ -331,7 +329,7 @@ def menuView(options,term):
                 with term.location(y=i+offset):
                     print(term.center(options[i]))
         
-        with term.raw():
+        with term.cbreak():
             key = term.inkey(1)
             if key == "q":
                 return False,False
@@ -353,7 +351,7 @@ def helpView():
         print(t.center("ESC : switch to/from media view"))
         print(t.center("F1 F2 F5 q : help recently added episodes clear quit"))
     while True:
-        with t.raw(): 
+        with t.cbreak(): 
             keyIn = t.inkey(1)
             if keyIn == 'q' or keyIn.name == 'KEY_F1' or keyIn.name == "KEY_ENTER":
                 print(t.exit_fullscreen)
@@ -393,7 +391,7 @@ try:
             for i in args:
                 print(inputAction(i))
 
-except (OSError,ConnectionError):
+except (KeyboardInterrupt,OSError,ConnectionError):
     print(t.exit_fullscreen())
     print("Cannot connect to Kodi server. Is it running? Is your config file configured?")
     pass
