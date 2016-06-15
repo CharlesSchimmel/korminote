@@ -22,7 +22,7 @@ class Kodi:
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()
 
-    def updateAV(self,library):
+    def updateAVLibrary(self,library):
         """
         Given the specified library type (VideoLibrary or AudioLibrary), asks the kodi server to update it.
         Returns the server's JSON response.
@@ -48,15 +48,15 @@ class Kodi:
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()['result']['currentwindow']['id']
 
-    def getProperties(self,playerid=False):
+    def playerProperties(self,playerid=False):
         """
         Queries the server and returns the currently active players properties.
         """
-        playerid = self.getPlayerID()
+        if playerid == False:
+            playerid = self.getPlayerID()
         payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetProperties", "params":{"playerid":'+playerid+',"properties":["playlistid","time","totaltime","percentage","type","speed"]} }'
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()
-
 
     def getPlayerID(self):
         """
@@ -91,8 +91,13 @@ class Kodi:
             return False,False
 
     def getFormattedTimes(self,curProperties=False):
+        """
+        Either takes already available current properties or queries for them and formats the total and current time.
+        Returns two strings (current and remaining) in either h:mm:ss (if hour > 0) or mm:ss format.
+        Preferred to make one Player.Properties call and use it for multiple functions to save on queries.
+        """
         if curProperties == False:
-            curProperties = self.getProperties()
+            curProperties = self.playerProperties()
         try:
             if curProperties['result']['totaltime']['hours'] == 0:
                 curTime =  "{}:{:02d}".format(curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
@@ -104,9 +109,14 @@ class Kodi:
             return "00:00/00:00"
         return curTime,totalTime
 
-
     def getRecentEps(self):
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes" }'
+        """
+        Queries the server for recently added episodes.
+        Returns a list (sorted, recently added first) of dictionaries for each episode.
+        Dictionaries contain keys: episodeid, label, episode title, file, showtitle
+        Returns false if no episodes are found.
+        """
+        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes", "params":{"properties":["title","showtitle","file"]}} '
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         try:
             return r.json()['result']['episodes']
@@ -115,7 +125,7 @@ class Kodi:
 
     def getPlaylistItems(self,curProperties=False):
         if curProperties == False:
-            playlistid = str(self.getProperties()['result']['playlistid'])
+            playlistid = str(self.playerProperties()['result']['playlistid'])
         else:
             playlistid = str(curProperties['result']['playlistid'])
         try:

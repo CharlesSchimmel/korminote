@@ -69,15 +69,9 @@ def keyParse(keyIn,windowID,kodi):
         kodi.inputAction("mute")
     
     elif keyIn == 'u':
-        kodi.updateAV("VideoLibrary")
+        kodi.updateAVLibrary("VideoLibrary")
     elif keyIn == 'U':
-        kodi.updateAV("AudioLibrary")
-
-    elif keyIn == 'u':
-        kodi.updateAV("VideoLibrary")
-    elif keyIn == 'U':
-        kodi.updateAV("AudioLibrary")
-
+        kodi.updateAVLibrary("AudioLibrary")
 
     elif keyIn.name == 'KEY_ENTER':
         if windowID != 10120:
@@ -90,11 +84,9 @@ def keyParse(keyIn,windowID,kodi):
 def recentEpsMenu(kodi,t):
     recentEpsList = kodi.getRecentEps()
     if recentEpsList != False:
-        recentEpsInfo = [ kodi.getEpDetails(x['episodeid']) for x in recentEpsList]
-        recentEpsList = [ x['label'] for x in recentEpsInfo]
-        selectionLabel,selectionIndex = menuView(recentEpsList,t)
-        if selectionLabel != False and selectionIndex != False:
-            openFile(recentEpsInfo[selectionIndex]['file'])
+        selectionLabel,selectionIndex = menuView([ x['label'] for x in recentEpsList],t)
+        if selectionLabel != False:
+            kodi.openFile(recentEpsList[selectionIndex]['file'])
     else:
         with t.location(y=0):
             print(t.bold(t.center("No Recent Episodes")))
@@ -140,8 +132,8 @@ def nowPlayingView(kodi):
 
         # If we get something for the playerid, something's playing.
         if playerid != False:
-            curProperties = kodi.getProperties(playerid)
-            totalTime,curTime = kodi.getFormattedTimes()
+            curProperties = kodi.playerProperties(playerid)
+            totalTime,curTime = kodi.getFormattedTimes(curProperties)
 
             times = "{}/{}".format(totalTime,curTime)
             title,artist = kodi.getTitle(playerid)
@@ -151,7 +143,7 @@ def nowPlayingView(kodi):
             progBar = int(progPerct*progWidth)
 
             if displayPlaylist.lower() in ['true','yes']:
-                playlistModule(kodi,t,title)
+                playlistModule(kodi,t,title,curProperties)
 
             with t.location(y=2):
                 if artist != '':
@@ -176,10 +168,10 @@ def nowPlayingView(kodi):
                 print(t.center(t.bold("Play something!")))
 
 
-def playlistModule(kodi,t,title):
+def playlistModule(kodi,t,title,curProperties):
     if int(time()) % 2 == 0:
         try:
-            playlist = kodi.getPlaylistItems()
+            playlist = kodi.getPlaylistItems(curProperties)
             playlistItems = [ x['title'] for x in playlist ]
             if len(playlistItems) > 1:
                 if playlistItems.index(title) > 2:
@@ -298,7 +290,6 @@ try:
             sys.exit(0)
 
         if 't' in args:
-            print(kodi.getRecentEps())
             sys.exit(0)
 
         t = Terminal()
