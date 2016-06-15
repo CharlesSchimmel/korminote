@@ -48,7 +48,7 @@ class Kodi:
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()['result']['currentwindow']['id']
 
-    def getProperties(self):
+    def getProperties(self,playerid=False):
         """
         Queries the server and returns the currently active players properties.
         """
@@ -109,7 +109,7 @@ class Kodi:
         payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes" }'
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         try:
-            return r.json()['results']['episodes']
+            return r.json()['result']['episodes']
         except (IndexError,KeyError):
             return False
 

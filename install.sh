@@ -51,6 +51,7 @@ else
 
     #cp will overwrite
     cp -p kodiremote.py $APP
+    cp -p KodiClient.py $APP
 
     echo -n "Making symlink to /usr/local/bin/kodiremote..."
     sudo rm $BINLOC

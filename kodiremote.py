@@ -90,7 +90,7 @@ def keyParse(keyIn,windowID,kodi):
 def recentEpsMenu(kodi,t):
     recentEpsList = kodi.getRecentEps()
     if recentEpsList != False:
-        recentEpsInfo = [ getEpDetails(x['episodeid']) for x in recentEpsList]
+        recentEpsInfo = [ kodi.getEpDetails(x['episodeid']) for x in recentEpsList]
         recentEpsList = [ x['label'] for x in recentEpsInfo]
         selectionLabel,selectionIndex = menuView(recentEpsList,t)
         if selectionLabel != False and selectionIndex != False:
@@ -140,8 +140,10 @@ def nowPlayingView(kodi):
 
         # If we get something for the playerid, something's playing.
         if playerid != False:
-            curProperties = kodi.getProperties()
-            times = "{}/{}".format(kodi.getFormattedTimes())
+            curProperties = kodi.getProperties(playerid)
+            totalTime,curTime = kodi.getFormattedTimes()
+
+            times = "{}/{}".format(totalTime,curTime)
             title,artist = kodi.getTitle(playerid)
 
             progPerct = curProperties['result']['percentage']/100
@@ -296,6 +298,7 @@ try:
             sys.exit(0)
 
         if 't' in args:
+            print(kodi.getRecentEps())
             sys.exit(0)
 
         t = Terminal()
