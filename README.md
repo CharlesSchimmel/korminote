@@ -2,8 +2,12 @@
 
 Configure with $HOME/.kodiremote/kodiremote.ini
 
-Vi (hjkl) keybindings for navigation. F1 or "kodiremote help" for help. 
+Kodiremote: A terminal remote for Kodi.
+Usage: 
+    kodiremote [host $HOST] [port $PORT] [action $ACTIONS] [youtube $URL]
+    host: specify Kodi host.
+    port: specify Kodi port. (8080 unless you specifically changed it.)
+    action: any number of valid actions. You can find all valid actions here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action
+    youtube: a youtube url. Unshortened only.*
 
 ![Screenshot](kodiremote.jpg?raw=true)
-
-Also supports "one-shot" mode for simple actions like pause, stop, skipnext, skipprevious. Just run with any number of valid arguments. They can be found here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action

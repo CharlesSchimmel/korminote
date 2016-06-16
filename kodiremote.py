@@ -5,10 +5,8 @@ from blessed import Terminal
 import sys
 import configparser
 from os import getenv
-from os import path
 from time import sleep, time
 from KodiClient import Kodi
-# import logging
 
 class Views:
     
@@ -16,6 +14,10 @@ class Views:
         kodi = Kodi()
 
 def keyParse(keyIn,windowID,kodi):
+    """
+    Brutish but python doesn't have switch/case and I'm not sure I want to use dictionaries for my functions.
+    Also, can be somewhat optimized by putting most commmon commands at the beginning of the sequence.
+    """
     if keyIn == 'q':
         print(t.exit_fullscreen())
         sys.exit(0)
@@ -29,9 +31,12 @@ def keyParse(keyIn,windowID,kodi):
             print(t.clear())
 
     elif keyIn == 'y':
-        yturl = textPrompt(t,"Enter Youtube Url")
-        if yturl != False:
-            kodi.playYoutube(yturl)
+        yturl = textPrompt(t,prompt="Enter Youtube Url")
+        if yturl != "":
+            try: 
+                kodi.playYoutube(yturl)
+            except:
+                pass
 
     # Actions
     elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
@@ -102,33 +107,38 @@ def textPrompt(t,prompt="Enter Text: "):
         usrIn = input(t.bold_blue(prompt))
     with t.location(x=0,y=5):
         print(" "*t.width)
-    if usrIn != "":
-        return usrIn
-    else:
-        return False
+    return usrIn
 
 
 def nowPlayingView(kodi):
+    # Upon activating any view, enter fullscreen and clear the old view.
+    # This lets us restore previous views or terminal states
     print(t.enter_fullscreen(),t.clear())
     with t.location(y=0,x=0):
         print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
-    while True:
 
+    while True:
+        # Move the cursor back to "rest." Shouldn't really be needed so long as
+        # The terminal supports hidden cursor mode and the keycapture actually captures the keys
+        # Neither of which are always true.
         print(t.move(0,0))
 
         playerid = kodi.getPlayerID()
         windowID = kodi.getWindowID()
-
+        
+        # Kodi gives a specific window id for the text entry prompt. If we get that, we know we can send text to it.
         if windowID == 10103:
             kodi.sendText(textPrompt(t))
 
+        # Capture keys and send them to the parser.
         with t.cbreak(): 
             keyIn = t.inkey(1)
             keyParse(keyIn,windowID,kodi)
 
+        # "Flush" the padding areas and title every few seconds.
+        # No need to do it frequently. It disrupts the interface if done too often.
+        # If the user resizes, stuff can get stuck in there as blessed doesn't redraw unless asked
         if int(time()) % 10 == 0:
-            # "Flush" the padding areas and title every few seconds.
-            # If the user resizes, stuff can get stuck in there as blessed doesn't redraw unless asked
             with t.location(y=0,x=0):
                 print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
             with t.location(y=1):
@@ -138,7 +148,7 @@ def nowPlayingView(kodi):
 
 
         # If we get something for the playerid, something's playing.
-        if playerid != False:
+        if playerid != -1:
             curProperties = kodi.playerProperties(playerid)
             totalTime,curTime = kodi.getFormattedTimes(curProperties)
 
@@ -153,7 +163,7 @@ def nowPlayingView(kodi):
                 playlistModule(kodi,t,title,curProperties)
 
             with t.location(y=2):
-                if artist != '':
+                if artist != '' and artist != False:
                     print(t.center(t.bold(title) +" - {}".format(artist)))
                 else: 
                     print(t.center(t.bold(title)))
@@ -246,20 +256,29 @@ def menuView(options,term):
 
 def helpView():
     print(t.enter_fullscreen)
-    with t.location(y=6):
-        print(t.center("H h j k l : back left down up right"))
-        print(t.center("[ ] space x : previous next pause stop"))
-        print(t.center("c i - = 0 : context info voldown volup mute"))
-        print(t.center("u U : Video,Audio library update"))
-        print(t.center("y : open youtube url"))
-        print(t.center("ESC : switch to/from media view"))
-        print(t.center("F1 F2 F5 q : help recently added episodes clear quit"))
+    with t.location(y=0):
+        print(t.bold(t.blue("Controls:")))
+        print("Largely similar to default Kodi controls \n")
+        print("left,down,up,right : h,j,k,l")
+        print("back : H")
+        print("skip previous,next : [ ]")
+        print("pause, stop : [space], x")
+        print("volume down,up,mute : -,=,0")
+        print("y : open youtube url")
+        print("context menu : c")
+        print("info : i")
+        print("update video library : u")
+        print("update video library : U")
+        print("ESC/F11 : switch to/from media view")
+        print("F1 : help")
+        print("F2 : Recently added episodes")
+        print("F5 : Refresh screen")
+        print("q : quit")
     while True:
         with t.cbreak(): 
             keyIn = t.inkey(1)
             if keyIn == 'q' or keyIn.name == 'KEY_F1' or keyIn.name == "KEY_ENTER":
-                print(t.exit_fullscreen)
-                print(t.clear)
+                print(t.exit_fullscreen(),t.clear())
                 break
 
 
@@ -279,31 +298,69 @@ try:
     if len(args) >= 1:
         # Checks if an intersection of two lists yields any results.
         if bool(set(['h','H','help','--help','-help']) & set(args)):
-            print("Run on its own or in one-shot mode with 'action' argument followed by any number of actions.")
-            print("Useful ones include left,right,down,up,pause,skipnext,skipprevious.")
-            print("You can find all valid input action arguments here:")
-            print("http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
-            print("valid arguments: [host $HOST] [port $PORT]")
+            print("Kodiremote: A terminal remote for Kodi.")
+            print("Usage: ")
+            print("\tkodiremote [host $HOST] [port $PORT] [action $ACTIONS] [youtube $URL]")
+            print("\thost: specify Kodi host.")
+            print("\tport: specify Kodi port. (8080 unless you specifically changed it.)")
+            print("\taction: any number of valid actions. You can find all valid actions here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
+            print("\tyoutube: a youtube url. Unshortened only.")
             sys.exit(0)
 
         if 'host' in args:
-            kodi.host = args[args.index('host') + 1]
+            try:
+                kodi.host = args[args.index('host') + 1]
+            except IndexError:
+                print("Need a host.")
 
         if 'port' in args:
-            kodi.port = args[args.index('port') + 1]
+            try:
+                kodi.port = args[args.index('port') + 1]
+            except IndexError:
+                print("Need a port.")
 
         if args[0] == 'action':
             for i in args:
                 print(kodi.inputAction(i))
             sys.exit(0)
 
+        if 'youtube' in args:
+            # Hope to add to main application soon as well as reading from pipe
+            # Only available as an argument for now.
+            try:
+                kodi.playYoutube(args[args.index('youtube')+1])
+            except (IndexError):
+                print("Need an url.")
+            except (OSError,ConnectionError):
+                print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+            sys.exit(0)
+
+        if 'playing' in args:
+            playerid = kodi.getPlayerID()
+            if playerid != -1:
+                title,artist = kodi.getTitle(playerid)
+                if artist != "" and artist != False:
+                    print("{} - {}".format(title,artist))
+                else:
+                    print(title)
+            sys.exit(0)
+
+
         if 't' in args:
             sys.exit(0)
 
-        t = Terminal()
-        with t.hidden_cursor(): 
-            nowPlayingView(kodi)
+        try:
+            t = Terminal()
+            with t.hidden_cursor(): 
+                nowPlayingView(kodi)
+        except (OSError,ConnectionError):
+            print(t.exit_fullscreen())
+            print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+        except KeyboardInterrupt:
+            print(t.exit_fullscreen)
 
-except (KeyboardInterrupt,OSError,ConnectionError):
+except (OSError,ConnectionError):
     print(t.exit_fullscreen())
     print("Cannot connect to Kodi server. Is it running? Is your config file configured?")
+except KeyboardInterrupt:
+    print(t.exit_fullscreen)
