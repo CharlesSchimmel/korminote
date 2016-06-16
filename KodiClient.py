@@ -123,6 +123,12 @@ class Kodi:
         except (IndexError,KeyError):
             return False
 
+    def playYoutube(self,yturl):
+        yturl = yturl[:yturl.index("&")]
+        yturl = yturl[yturl.index("=")+1:]
+        yturl = "plugin://plugin.video.youtube/?action=play_video&videoid={}".format(yturl)
+        self.openFile(yturl)
+
     def getPlaylistItems(self,curProperties=False):
         if curProperties == False:
             playlistid = str(self.playerProperties()['result']['playlistid'])

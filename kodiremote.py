@@ -28,6 +28,10 @@ def keyParse(keyIn,windowID,kodi):
         with t.location(y=6):
             print(t.clear())
 
+    elif keyIn == 'y':
+        yturl = textPrompt(t,"Enter Youtube Url")
+        if yturl != False:
+            kodi.playYoutube(yturl)
 
     # Actions
     elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
@@ -91,14 +95,17 @@ def recentEpsMenu(kodi,t):
         with t.location(y=0):
             print(t.bold(t.center("No Recent Episodes")))
 
-def textPrompt(t):
+def textPrompt(t,prompt="Enter Text: "):
     with t.location(x=0,y=5):
         print(t.bold_blue("▒"*(t.width//2)))
     with t.location(x=0,y=5):
-        usrIn = input(t.bold_blue("Enter text: "))
+        usrIn = input(t.bold_blue(prompt))
     with t.location(x=0,y=5):
         print(" "*t.width)
-    return usrIn
+    if usrIn != "":
+        return usrIn
+    else:
+        return False
 
 
 def nowPlayingView(kodi):
@@ -243,7 +250,8 @@ def helpView():
         print(t.center("H h j k l : back left down up right"))
         print(t.center("[ ] space x : previous next pause stop"))
         print(t.center("c i - = 0 : context info voldown volup mute"))
-        print(t.center("u U : Video Audio library update"))
+        print(t.center("u U : Video,Audio library update"))
+        print(t.center("y : open youtube url"))
         print(t.center("ESC : switch to/from media view"))
         print(t.center("F1 F2 F5 q : help recently added episodes clear quit"))
     while True:
