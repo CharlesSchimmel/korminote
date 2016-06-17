@@ -12,12 +12,34 @@ class Views:
     
     def __init__(self):
         kodi = Kodi()
+        term = Terminal()
+        curProperties = ""
+        windowID = 0
+        playerid = 0
 
 def keyParse(keyIn,windowID,kodi):
     """
     Brutish but python doesn't have switch/case and I'm not sure I want to use dictionaries for my functions.
     Also, can be somewhat optimized by putting most commmon commands at the beginning of the sequence.
+    Not that I've done that...
     """
+
+    ### Sketch: ###
+    """
+     If it receives a valid key, trap it in a new loop with a timeout
+     This should help the latency as it no longer has to redraw the display
+     Should make holding keys down to rapidly work much better
+     May need to make an intermediary (recursive?) function for this.
+     Something like:
+     while True:
+         if oldTime - int(time()) > 2:
+             capture keys
+         curTime = int(time())
+         if 
+     
+    """
+    ###############
+
     if keyIn == 'q':
         print(t.exit_fullscreen())
         sys.exit(0)
@@ -30,13 +52,13 @@ def keyParse(keyIn,windowID,kodi):
         with t.location(y=6):
             print(t.clear())
 
-    elif keyIn == 'y':
-        yturl = textPrompt(t,prompt="Enter Youtube Url")
-        if yturl != "":
-            try: 
-                kodi.playYoutube(yturl)
-            except:
-                pass
+    # elif keyIn == 'y':
+    #     yturl = textPrompt(t,prompt="Enter Youtube Url: ")
+    #     if yturl != "":
+    #         try: 
+    #             kodi.playYoutube(yturl)
+    #         except:
+    #             pass
 
     # Actions
     elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
@@ -90,6 +112,26 @@ def keyParse(keyIn,windowID,kodi):
             kodi.inputAction("select")
 
 
+def keyCap(windowID,kodi,prevTime=False):
+    """
+    Main keycapture method. Recursive method so that we can have a short "repeat" window in the case the user wants to make many actions very quickly. Instead of capturing once per main loop, it contains a subloop that will listen for subsequent keypresses before returning to the main loop.
+    This should help the latency as it no longer has to redraw the display.
+    """
+    windowID = kodi.getWindowID()
+    if not prevTime:
+        prevTime = time()
+    with t.cbreak(): 
+        keyIn = t.inkey(1)
+        if keyIn != '':
+            keyParse(keyIn,windowID,kodi)
+            prevTime = time()
+            keyCap(windowID,kodi,prevTime)
+        elif keyIn == '':
+            if time() - prevTime > 1:
+                return False
+            else:
+                keyCap(windowID,kodi,prevTime)
+
 def recentEpsMenu(kodi,t):
     recentEpsList = kodi.getRecentEps()
     if recentEpsList != False:
@@ -120,20 +162,18 @@ def nowPlayingView(kodi):
     while True:
         # Move the cursor back to "rest." Shouldn't really be needed so long as
         # The terminal supports hidden cursor mode and the keycapture actually captures the keys
-        # Neither of which are always true.
+        # But that's not always the case...
         print(t.move(0,0))
 
-        playerid = kodi.getPlayerID()
-        windowID = kodi.getWindowID()
+        playerid = kodi.getPlayerID() ### REQUEST
+        windowID = kodi.getWindowID() ### REQUEST
         
         # Kodi gives a specific window id for the text entry prompt. If we get that, we know we can send text to it.
         if windowID == 10103:
             kodi.sendText(textPrompt(t))
 
         # Capture keys and send them to the parser.
-        with t.cbreak(): 
-            keyIn = t.inkey(1)
-            keyParse(keyIn,windowID,kodi)
+        keyCap(windowID,kodi)
 
         # "Flush" the padding areas and title every few seconds.
         # No need to do it frequently. It disrupts the interface if done too often.
@@ -149,23 +189,25 @@ def nowPlayingView(kodi):
 
         # If we get something for the playerid, something's playing.
         if playerid != -1:
-            curProperties = kodi.playerProperties(playerid)
+            curProperties = kodi.playerProperties(playerid) ### REQUEST
+
             totalTime,curTime = kodi.getFormattedTimes(curProperties)
 
             times = "{}/{}".format(totalTime,curTime)
             title,artist = kodi.getTitle(playerid)
+            title = str(title) # Every once in a while a False slips through. It'll only display for a second.
 
             progPerct = curProperties['result']['percentage']/100
             progWidth = t.width - len(times)
             progBar = int(progPerct*progWidth)
 
-            if displayPlaylist.lower() in ['true','yes']:
-                playlistModule(kodi,t,title,curProperties)
-
+            if int(time()) % 5 == 0:
+                if displayPlaylist.lower() == 'true':
+                    playlistModule(kodi,t,title,curProperties)
             with t.location(y=2):
                 if artist != '' and artist != False:
                     print(t.center(t.bold(title) +" - {}".format(artist)))
-                else: 
+                else:
                     print(t.center(t.bold(title)))
 
             if curProperties['result']['speed'] == 0:
@@ -186,42 +228,41 @@ def nowPlayingView(kodi):
 
 
 def playlistModule(kodi,t,title,curProperties):
-    if int(time()) % 2 == 0:
-        try:
-            playlist = kodi.getPlaylistItems(curProperties)
-            playlistItems = [ x['title'] for x in playlist ]
-            if len(playlistItems) > 1:
-                if playlistItems.index(title) > 2:
-                    # If we're a couple songs deep, We don't want to see the whole start of the playlist, just 2 before current
-                    playNum = playlistItems.index(title) - 2
-                    playlist = playlistItems[playNum:]
+    try:
+        playlist = kodi.getPlaylistItems(curProperties) ### REQUEST
+        playlistItems = [ x['title'] for x in playlist ]
+        if len(playlistItems) > 1:
+            if playlistItems.index(title) > 2:
+                # If we're a couple songs deep, We don't want to see the whole start of the playlist, just 2 before current
+                playNum = playlistItems.index(title) - 2
+                playlist = playlistItems[playNum:]
 
-                    # Make "entries" into the list so that we flush old entries when it scrolls up
-                    # for i in range(len(playlist)+6,t.height):
-                    #     playlist.append(" "*t.width)
+                # Make "entries" into the list so that we flush old entries when it scrolls up
+                # for i in range(len(playlist)+6,t.height):
+                #     playlist.append(" "*t.width)
 
-                    for i in playlist[:t.height-7]:
-                        with t.location(y=6+playlist.index(i)):
-                            if i == title:
-                                print(t.center(t.bold(t.white_on_black(i))))
-                            else:
-                                print(t.center(i))
-                else:
-                    playlist = playlistItems
-                    # playlist = playlist[:playNum]
+                for i in playlist[:t.height-7]:
+                    with t.location(y=6+playlist.index(i)):
+                        if i == title:
+                            print(t.center(t.bold(t.white_on_black(i))))
+                        else:
+                            print(t.center(i))
+            else:
+                playlist = playlistItems
+                # playlist = playlist[:playNum]
 
-                    # Make "entries" into the list so that we flush old entries when it scrolls up
-                    # for i in range(len(playlist)+6,t.height):
-                    #     playlist.append(" "*t.width)
+                # Make "entries" into the list so that we flush old entries when it scrolls up
+                # for i in range(len(playlist)+6,t.height):
+                #     playlist.append(" "*t.width)
 
-                    for i in playlist[:t.height-7]:
-                        with t.location(y=6+playlist.index(i)):
-                            if i == title:
-                                print(t.center(t.bold(i)))
-                            else:
-                                print(t.center(i))
-        except:
-            pass
+                for i in playlist[:t.height-7]:
+                    with t.location(y=6+playlist.index(i)):
+                        if i == title:
+                            print(t.center(t.bold(i)))
+                        else:
+                            print(t.center(i))
+    except:
+        pass
 
 def menuView(options,term):
     offset=2
@@ -286,9 +327,7 @@ try:
     config = configparser.ConfigParser() #initializing config parser object
     config.read('{}/.kodiremote/kodiremote.ini'.format(getenv("HOME"))) #sending config file to config parser object
     displayPlaylist = config['settings']['playlist']
-    kodi = Kodi()
-    kodi.host = config['settings']['host'] 
-    kodi.port = config['settings']['port']
+    kodi = Kodi(config['settings']['host'],config['settings']['port'])
     args = sys.argv[1:]
     if len(args) == 0:
         t = Terminal()
@@ -304,6 +343,7 @@ try:
             print("\thost: specify Kodi host.")
             print("\tport: specify Kodi port. (8080 unless you specifically changed it.)")
             print("\taction: any number of valid actions. You can find all valid actions here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
+            print("\tplaying: prints '$title - $artist' or just 'title' if no artist available.")
             print("\tyoutube: a youtube url. Unshortened only.")
             sys.exit(0)
 

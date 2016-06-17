@@ -6,9 +6,9 @@ class Kodi:
     Contains methods relating to interacting with a Kodi instance's JSON server.
     """
 
-    def __init__(self):
-        self.host = "localhost"
-        self.port = 8080
+    def __init__(self,kodiHost="localhost",kodiPort=8080):
+        self.host = kodiHost
+        self.port = kodiPort
         self.headers = {'Content-Type': 'application/json'}
         self.curPlayerProperties = {}
 
@@ -107,7 +107,7 @@ class Kodi:
         Returns two strings (current and remaining) in either h:mm:ss (if hour > 0) or mm:ss format.
         Preferred to make one Player.Properties call and use it for multiple functions to save on queries.
         """
-        if curProperties == False:
+        if not curProperties:
             curProperties = self.playerProperties()
         try:
             if curProperties['result']['totaltime']['hours'] == 0:
@@ -143,7 +143,7 @@ class Kodi:
         self.openFile(yturl)
 
     def getPlaylistItems(self,curProperties=False):
-        if curProperties == False:
+        if not curProperties:
             playlistid = str(self.playerProperties()['result']['playlistid'])
         else:
             playlistid = str(curProperties['result']['playlistid'])
