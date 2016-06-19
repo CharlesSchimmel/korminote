@@ -6,12 +6,12 @@ import sys
 import configparser
 from os import getenv
 from time import sleep, time
-from KodiClient import Kodi
+from kodiclient import KodiClient
 
 class Views:
     
     def __init__(self):
-        kodi = Kodi()
+        kodi = KodiClient()
         term = Terminal()
         curProperties = ""
         windowID = 0
@@ -110,7 +110,6 @@ def keyParse(keyIn,windowID,kodi):
             kodi.inputAction("osd")
         else:
             kodi.inputAction("select")
-
 
 def keyCap(windowID,kodi):
     """
@@ -222,6 +221,7 @@ def nowPlayingView(kodi):
             with t.location(x=0, y=2):
                 print(t.center(t.bold("Play something!")))
 
+
 def playlistModule(kodi,t,title,curProperties):
     try:
         playlist = kodi.getPlaylistItems(curProperties) ### REQUEST
@@ -319,9 +319,9 @@ def helpView():
 
 
 config = configparser.ConfigParser() #initializing config parser object
-config.read('{}/.kodiremote/kodiremote.ini'.format(getenv("HOME"))) #sending config file to config parser object
+config.read('{}/.kodiremote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
 displayPlaylist = config['settings']['playlist']
-kodi = Kodi(config['settings']['host'],config['settings']['port'])
+kodi = KodiClient(config['settings']['host'],config['settings']['port'])
 args = sys.argv[1:]
 
 if len(args) >= 1:

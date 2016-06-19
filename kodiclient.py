@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import requests
 
-class Kodi:
+class KodiClient:
     """
     Contains methods relating to interacting with a Kodi instance's JSON server.
     """

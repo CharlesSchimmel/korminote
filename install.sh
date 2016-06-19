@@ -1,6 +1,6 @@
 #!/bin/bash
 APP=$HOME/.kodiremote/
-CONFIG="$APP"kodiremote.ini
+CONFIG="$APP"config.ini
 BINLOC=/usr/local/bin/kodiremote
 
 if [ "$(id -u)" == "0" ]; then
@@ -51,7 +51,7 @@ else
 
     #cp will overwrite
     cp -p kodiremote.py $APP
-    cp -p KodiClient.py $APP
+    cp -p kodiclient.py $APP
 
     echo -n "Making symlink to /usr/local/bin/kodiremote..."
     sudo rm $BINLOC
@@ -60,9 +60,9 @@ else
 
     if ! [[ -e $CONFIG ]]; then
         echo "Copying config..."
-        cp -p kodiremote.ini $CONFIG
+        cp -p config.ini $CONFIG
     else
-        cp -p kodiremote.ini $CONFIG.default
+        cp -p config.ini $CONFIG.default
     fi
 
     echo "Done."
