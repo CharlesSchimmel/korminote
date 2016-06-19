@@ -112,25 +112,22 @@ def keyParse(keyIn,windowID,kodi):
             kodi.inputAction("select")
 
 
-def keyCap(windowID,kodi,prevTime=False):
+def keyCap(windowID,kodi):
     """
-    Main keycapture method. Recursive method so that we can have a short "repeat" window in the case the user wants to make many actions very quickly. Instead of capturing once per main loop, it contains a subloop that will listen for subsequent keypresses before returning to the main loop.
+    Main keycapture method. We have a short "repeat" window in the case the user wants to make many actions very quickly. Instead of capturing once per main loop, it contains a subloop that will listen for subsequent keypresses before returning to the main loop.
     This should help the latency as it no longer has to redraw the display.
     """
-    windowID = kodi.getWindowID()
-    if not prevTime:
-        prevTime = time()
-    with t.cbreak(): 
-        keyIn = t.inkey(1)
-        if keyIn != '':
-            keyParse(keyIn,windowID,kodi)
-            prevTime = time()
-            keyCap(windowID,kodi,prevTime)
-        elif keyIn == '':
-            if time() - prevTime > 1:
-                return False
-            else:
-                keyCap(windowID,kodi,prevTime)
+    prevTime = time()
+    while True:
+        windowID = kodi.getWindowID()
+        with t.cbreak(): 
+            keyIn = t.inkey(1)
+            if keyIn != '':
+                keyParse(keyIn,windowID,kodi)
+                prevTime = time()
+            elif keyIn == '':
+                if time() - prevTime > 1:
+                    break
 
 def recentEpsMenu(kodi,t):
     recentEpsList = kodi.getRecentEps()
@@ -150,7 +147,6 @@ def textPrompt(t,prompt="Enter Text: "):
     with t.location(x=0,y=5):
         print(" "*t.width)
     return usrIn
-
 
 def nowPlayingView(kodi):
     # Upon activating any view, enter fullscreen and clear the old view.
@@ -225,7 +221,6 @@ def nowPlayingView(kodi):
         else:
             with t.location(x=0, y=2):
                 print(t.center(t.bold("Play something!")))
-
 
 def playlistModule(kodi,t,title,curProperties):
     try:
@@ -323,84 +318,73 @@ def helpView():
                 break
 
 
-try:
-    config = configparser.ConfigParser() #initializing config parser object
-    config.read('{}/.kodiremote/kodiremote.ini'.format(getenv("HOME"))) #sending config file to config parser object
-    displayPlaylist = config['settings']['playlist']
-    kodi = Kodi(config['settings']['host'],config['settings']['port'])
-    args = sys.argv[1:]
-    if len(args) == 0:
-        t = Terminal()
-        with t.hidden_cursor(): 
-            nowPlayingView(kodi)
+config = configparser.ConfigParser() #initializing config parser object
+config.read('{}/.kodiremote/kodiremote.ini'.format(getenv("HOME"))) #sending config file to config parser object
+displayPlaylist = config['settings']['playlist']
+kodi = Kodi(config['settings']['host'],config['settings']['port'])
+args = sys.argv[1:]
 
-    if len(args) >= 1:
-        # Checks if an intersection of two lists yields any results.
-        if bool(set(['h','H','help','--help','-help']) & set(args)):
-            print("Kodiremote: A terminal remote for Kodi.")
-            print("Usage: ")
-            print("\tkodiremote [host $HOST] [port $PORT] [action $ACTIONS] [youtube $URL]")
-            print("\thost: specify Kodi host.")
-            print("\tport: specify Kodi port. (8080 unless you specifically changed it.)")
-            print("\taction: any number of valid actions. You can find all valid actions here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
-            print("\tplaying: prints '$title - $artist' or just 'title' if no artist available.")
-            print("\tyoutube: a youtube url. Unshortened only.")
-            sys.exit(0)
+if len(args) >= 1:
+    # Checks if an intersection of two lists yields any results.
+    if bool(set(['h','H','help','--help','-help']) & set(args)):
+        print("Kodiremote: A terminal remote for Kodi.")
+        print("Usage: ")
+        print("\tkodiremote [host $HOST] [port $PORT] [action $ACTIONS] [youtube $URL]")
+        print("\thost: specify Kodi host.")
+        print("\tport: specify Kodi port. (8080 unless you specifically changed it.)")
+        print("\taction: any number of valid actions. You can find all valid actions here: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action")
+        print("\tplaying: prints '$title - $artist' or just 'title' if no artist available.")
+        print("\tyoutube: a youtube url. Unshortened only.")
+        sys.exit(0)
 
-        if 'host' in args:
-            try:
-                kodi.host = args[args.index('host') + 1]
-            except IndexError:
-                print("Need a host.")
-
-        if 'port' in args:
-            try:
-                kodi.port = args[args.index('port') + 1]
-            except IndexError:
-                print("Need a port.")
-
-        if args[0] == 'action':
-            for i in args:
-                print(kodi.inputAction(i))
-            sys.exit(0)
-
-        if 'youtube' in args:
-            # Hope to add to main application soon as well as reading from pipe
-            # Only available as an argument for now.
-            try:
-                kodi.playYoutube(args[args.index('youtube')+1])
-            except (IndexError):
-                print("Need an url.")
-            except (OSError,ConnectionError):
-                print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
-            sys.exit(0)
-
-        if 'playing' in args:
-            playerid = kodi.getPlayerID()
-            if playerid != -1:
-                title,artist = kodi.getTitle(playerid)
-                if artist != "" and artist != False:
-                    print("{} - {}".format(title,artist))
-                else:
-                    print(title)
-            sys.exit(0)
-
-
-        if 't' in args:
-            sys.exit(0)
-
+    if 'host' in args:
         try:
-            t = Terminal()
-            with t.hidden_cursor(): 
-                nowPlayingView(kodi)
-        except (OSError,ConnectionError):
-            print(t.exit_fullscreen())
-            print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
-        except KeyboardInterrupt:
-            print(t.exit_fullscreen)
+            kodi.host = args[args.index('host') + 1]
+        except IndexError:
+            print("Need a host.")
 
+    if 'port' in args:
+        try:
+            kodi.port = args[args.index('port') + 1]
+        except IndexError:
+            print("Need a port.")
+
+    if args[0] == 'action':
+        for i in args:
+            print(kodi.inputAction(i))
+        sys.exit(0)
+
+    if 'youtube' in args:
+        # Hope to add to main application soon as well as reading from pipe
+        # Only available as an argument for now.
+        try:
+            kodi.playYoutube(args[args.index('youtube')+1])
+        except (IndexError):
+            print("Need an url.")
+        except (OSError,ConnectionError):
+            print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+        sys.exit(0)
+
+    if 'playing' in args:
+        playerid = kodi.getPlayerID()
+        if playerid != -1:
+            title,artist = kodi.getTitle(playerid)
+            if artist != "" and artist != False:
+                print("{} - {}".format(title,artist))
+            else:
+                print(title)
+        sys.exit(0)
+
+
+    if 't' in args:
+        sys.exit(0)
+
+try:
+    t = Terminal()
+    with t.hidden_cursor(): 
+        nowPlayingView(kodi)
 except (OSError,ConnectionError):
     print(t.exit_fullscreen())
-    print("Cannot connect to Kodi server. Is it running? Is your config file configured?")
+    print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
 except KeyboardInterrupt:
     print(t.exit_fullscreen)
