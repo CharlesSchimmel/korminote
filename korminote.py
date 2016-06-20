@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
+__name__="Charles Schimmelpfennig"
+__license__="Creative Commons by-nc-sa"
+__version__="0.7"
+__status__="Development"
+
 # imports
 from blessed import Terminal
 import sys
 import configparser
 from os import getenv
-from time import sleep, time
+from time import  time
 from kodiclient import KodiClient
 import argparse
 
@@ -279,7 +284,7 @@ def helpView():
 
 """ Set Constants """
 config = configparser.ConfigParser() #initializing config parser object
-config.read('{}/.kodiremote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
+config.read('{}/.korminote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
 displayPlaylist = config['settings']['playlist']
 kodi = KodiClient(config['settings']['host'],config['settings']['port'])
 

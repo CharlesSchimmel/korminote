@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+__name__="Charles Schimmelpfennig"
+__license__="Creative Commons by-nc-sa"
+__version__="0.7"
+__status__="Development"
+
 import requests
 
 class KodiClient:

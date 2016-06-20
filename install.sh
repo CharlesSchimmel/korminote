@@ -5,7 +5,7 @@ SYMLOC=/usr/bin/korminote
 OPT=/opt/korminote/
 
 install () {
-    echo "This will install KoRmiNote! A Kodi Remote for the terminal!"
+    echo "This will install Korminote! A Kodi Remote for the terminal!"
     echo "Checking dependencies:"
 
     #Check if python3 installed
