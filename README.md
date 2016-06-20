@@ -1,8 +1,10 @@
 # Korminote
 
+## Version: 0.7
+
 Korminote: A terminal remote for Kodi!
 
-Install with install.sh
+Install with "install.sh". Uninstall with "install.sh uninstall".
 
 Usage:
 
