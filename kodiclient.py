@@ -71,7 +71,7 @@ class KodiClient:
 
     def getPlayerID(self):
         """
-        Queries the server and returns the player id as a string (0-2.
+        Queries the server and returns the player id as a string (0-2).
         If there's none to be found (ie nothing is playing) returns -1.
         """
         payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetActivePlayers" }'
@@ -79,7 +79,7 @@ class KodiClient:
         try:
             return str(r.json()['result'][0]['playerid'])
         except (IndexError):
-            return -1
+            return -1 # The player ID can be 0 so we can't use False
 
     def getTitle(self,playerid=-1):
         """

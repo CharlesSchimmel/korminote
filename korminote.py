@@ -22,41 +22,13 @@ def keyParse(keyIn,windowID,kodi):
     """
     Brutish but python doesn't have switch/case and I'm not sure I want to use dictionaries for my functions.
     Also, can be somewhat optimized by putting most commmon commands at the beginning of the sequence.
-    Not that I've done that...
     """
 
     if keyIn == 'q':
         print(t.exit_fullscreen())
         sys.exit(0)
 
-    elif keyIn.name == 'KEY_F1':
-        helpView()
-    elif keyIn.name == 'KEY_F2':
-        recentEpsMenu(kodi,t)
-    elif keyIn.name == 'KEY_F5':
-        with t.location(y=6):
-            print(t.clear())
-
-    # elif keyIn == 'y':
-    #     yturl = textPrompt(t,prompt="Enter Youtube Url: ")
-    #     if yturl != "":
-    #         try: 
-    #             kodi.playYoutube(yturl)
-    #         except:
-    #             pass
-
-    # Actions
-    elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
-        kodi.inputAction("fullscreen")
-    elif keyIn == ' ':
-        kodi.inputAction("pause")
-    elif keyIn == ']':
-        kodi.inputAction("skipnext")
-    elif keyIn == '[':
-        kodi.inputAction("skipprevious")
-    elif keyIn == 'x':
-        kodi.inputAction("stop")
-
+    # Navigation and Actions
     elif keyIn == 'H' or keyIn.name == "KEY_DELETE":
         kodi.inputAction("back")
     elif keyIn == 'h' or keyIn.name == "KEY_LEFT":
@@ -71,32 +43,46 @@ def keyParse(keyIn,windowID,kodi):
         kodi.inputAction("up")
     elif keyIn == 'j' or keyIn.name == "KEY_DOWN":
         kodi.inputAction("down")
-    
-    elif keyIn == 'c':
-        kodi.inputAction("contextmenu")
-    elif keyIn == 'i':
-        kodi.inputAction("info")
-
-    elif keyIn == '-':
-        kodi.inputAction("volumedown")
-    elif keyIn == '=':
-        kodi.inputAction("volumeup")
-    elif keyIn == '0':
-        kodi.inputAction("mute")
-    
-    elif keyIn == 'u':
-        kodi.updateAVLibrary("VideoLibrary")
-    elif keyIn == 'U':
-        kodi.updateAVLibrary("AudioLibrary")
-
     elif keyIn.name == 'KEY_ENTER':
         if windowID != 10120:
             kodi.inputAction("select")
             kodi.inputAction("osd")
         else:
             kodi.inputAction("select")
+    elif keyIn.name == 'KEY_ESCAPE' or keyIn.name == "KEY_F11":
+        kodi.inputAction("fullscreen")
+    elif keyIn == ' ':
+        kodi.inputAction("pause")
+    elif keyIn == ']':
+        kodi.inputAction("skipnext")
+    elif keyIn == '[':
+        kodi.inputAction("skipprevious")
+    elif keyIn == 'x':
+        kodi.inputAction("stop")
+    elif keyIn == '-':
+        kodi.inputAction("volumedown")
+    elif keyIn == '=':
+        kodi.inputAction("volumeup")
+    elif keyIn == '0':
+        kodi.inputAction("mute")
+    elif keyIn == 'c':
+        kodi.inputAction("contextmenu")
+    elif keyIn == 'i':
+        kodi.inputAction("info")
+    elif keyIn == 'u':
+        kodi.updateAVLibrary("VideoLibrary")
+    elif keyIn == 'U':
+        kodi.updateAVLibrary("AudioLibrary")
+    # Client-side commands
+    elif keyIn.name == 'KEY_F1':
+        helpView()
+    elif keyIn.name == 'KEY_F2':
+        recentEpsMenu(kodi,t)
+    elif keyIn.name == 'KEY_F5':
+        with t.location(y=6):
+            print(t.clear())
 
-def keyCap(windowID,kodi):
+def keyCap(kodi):
     """
     Main keycapture method. We have a short "repeat" window in the case the user wants to make many actions very quickly. Instead of capturing once per main loop, it contains a subloop that will listen for subsequent keypresses before returning to the main loop.
     This should help the latency as it no longer has to redraw the display.
@@ -140,9 +126,7 @@ def nowPlayingView(kodi):
         print(t.center(t.cyan(t.bold("Kodi Terminal Remote"))))
 
     while True:
-        # Move the cursor back to "rest." Shouldn't really be needed so long as
-        # The terminal supports hidden cursor mode and the keycapture actually captures the keys
-        # But that's not always the case...
+        # Move the cursor back to "rest." Not all terminals will hid ethe cursor like they sould. 
         print(t.move(0,0))
 
         playerid = kodi.getPlayerID() ### REQUEST
@@ -153,7 +137,7 @@ def nowPlayingView(kodi):
             kodi.sendText(textPrompt(t))
 
         # Capture keys and send them to the parser.
-        keyCap(windowID,kodi)
+        keyCap(kodi)
 
         # "Flush" the padding areas and title every few seconds.
         # No need to do it frequently. It disrupts the interface if done too often.
@@ -216,9 +200,6 @@ def playlistModule(kodi,t,title,curProperties):
                 playNum = playlistItems.index(title) - 2
                 playlist = playlistItems[playNum:]
 
-                # Make "entries" into the list so that we flush old entries when it scrolls up
-                # for i in range(len(playlist)+6,t.height):
-                #     playlist.append(" "*t.width)
 
                 for i in playlist[:t.height-7]:
                     with t.location(y=6+playlist.index(i)):
@@ -228,11 +209,6 @@ def playlistModule(kodi,t,title,curProperties):
                             print(t.center(i))
             else:
                 playlist = playlistItems
-                # playlist = playlist[:playNum]
-
-                # Make "entries" into the list so that we flush old entries when it scrolls up
-                # for i in range(len(playlist)+6,t.height):
-                #     playlist.append(" "*t.width)
 
                 for i in playlist[:t.height-7]:
                     with t.location(y=6+playlist.index(i)):
@@ -301,14 +277,13 @@ def helpView():
                 print(t.exit_fullscreen(),t.clear())
                 break
 
-
+""" Set Constants """
 config = configparser.ConfigParser() #initializing config parser object
 config.read('{}/.kodiremote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
-
 displayPlaylist = config['settings']['playlist']
 kodi = KodiClient(config['settings']['host'],config['settings']['port'])
 
-# Parsing arguments: 
+""" Parse arguments """
 parser=argparse.ArgumentParser(description="Korminote: A terminal remote client for Kodi!")
 parser.add_argument('-host', nargs='?', dest='host', help="Specify Kodi's host address.")
 parser.add_argument('-port', nargs='?', dest='port', help="Specify Kodi's port address.")
