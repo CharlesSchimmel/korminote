@@ -140,6 +140,9 @@ class KodiClient:
             return False
 
     def playYoutube(self,yturl):
+        """
+        Expects the unique ID number for the youtube video. 
+        """
         try:
             yturl = yturl[:yturl.index("&")] # Youtube urls don't always have an addendum
         except: pass
@@ -148,6 +151,10 @@ class KodiClient:
         self.openFile(yturl)
 
     def getPlaylistItems(self,curProperties=False):
+        """
+        Returns a list (of dicts) of items in the playlist. Doesn't need to be given the current properties (which contains the playlistid for the current playlist.)
+        """
+
         if not curProperties:
             playlistid = str(self.playerProperties()['result']['playlistid'])
         else:
@@ -160,12 +167,19 @@ class KodiClient:
             return False
 
     def getEpDetails(self,episodeid):
+        """
+        When given the unique ID of an episode in the library, it returns information about that episode.
+        """
         episodeid = str(episodeid)
         payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodeDetails", "params":{"episodeid":'+episodeid+',"properties":["file"]} }'
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()['result']['episodedetails']
 
     def openFile(self,targetFile):
+        """
+        Opens a file for playback given a path. This path can also be one of the plugin paths like plugin://plugin.video.youtube etc
+        Returns the server's JSON response.
+        """
         payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.Open", "params":{"item":{"file":"'+targetFile+'"}}}'
         r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
         return r.json()

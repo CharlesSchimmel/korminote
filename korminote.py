@@ -164,7 +164,7 @@ def nowPlayingView(kodi):
 
             times = "{}/{}".format(totalTime,curTime)
             title,artist = kodi.getTitle(playerid)
-            title = str(title) # Every once in a while a False slips through. It'll only display for a second.
+            if title == False: title = "" # Every once in a while a False slips through. It'll only display for a second.
 
             progPerct = curProperties['result']['percentage']/100
             progWidth = t.width - len(times)
