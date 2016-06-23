@@ -122,7 +122,7 @@ class KodiClient:
                 curTime =  "{}:{:02d}:{:02d}".format(curProperties['result']['time']['hours'],curProperties['result']['time']['minutes'],curProperties['result']['time']['seconds'])
                 totalTime = "{}:{:02d}:{:02d}".format(curProperties['result']['totaltime']['hours'],curProperties['result']['totaltime']['minutes'],curProperties['result']['totaltime']['seconds'])
         except:
-            return "00:00/00:00"
+            return "00:00","00:00"
         return curTime,totalTime
 
     def getRecentEps(self):
