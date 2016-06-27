@@ -120,7 +120,7 @@ class Views:
         t = self.term
         recentEpsList = kodi.getRecentEps()
         if recentEpsList != False:
-            selectionLabel,selectionIndex = self.menuView([ x['label'] for x in recentEpsList])
+            selectionLabel,selectionIndex = self.menuView([ x['label'] for x in recentEpsList],"Recent Episodes:")
             if selectionLabel != False:
                 kodi.openFile(recentEpsList[selectionIndex]['file'])
         else:
@@ -139,6 +139,11 @@ class Views:
             print(" "*t.width)
         return usrIn
 
+    def header(self):
+        t = self.term
+        with t.location(y=0):
+            print(t.bold(t.bright_red("Korminote")),t.bright_blue_on_white("F1 Help"),t.bright_blue_on_white("F2 Recent Episodes"),t.bright_blue_on_white("F5 Refresh"))
+
     def nowPlayingView(self):
         """
         Essentially the main loop. Does all the handling for displaying information to the user.
@@ -149,10 +154,10 @@ class Views:
         # Upon activating any view, enter fullscreen and clear the old view.
         # This lets us restore previous views or terminal states
         print(t.enter_fullscreen(),t.clear())
-        with t.location(y=0,x=0):
-            print(t.center(t.cyan(t.bold("Korminote"))))
+        self.header()
 
         while True:
+            
             # Move the cursor back to "rest." Not all terminals will hid ethe cursor like they sould. 
             print(t.move(0,0))
 
@@ -166,9 +171,8 @@ class Views:
             self.keyCap()
 
             # "Flush" the padding areas and title every few seconds. It disrupts the interface if done too often.
-            if int(time()) % 7 == 0:
-                with t.location(y=0,x=0):
-                    print(t.center(t.cyan(t.bold("Korminote"))))
+            if int(time()) % 5 == 0:
+                self.header()
                 with t.location(y=1):
                     print(t.center(""))
                 with t.location(y=5):
@@ -243,34 +247,41 @@ class Views:
         except:
             pass
 
-    def menuView(self,options):
+    def menuView(self,options,title=False):
         term = self.term
-        offset=2
-        print(term.enter_fullscreen())
-        print(term.move(offset-1,0))
-        with term.location(0,0):
-            print(term.bold(term.blue(term.center("Enter to select, q to cancel."))))
+        offset=2 # Spacing for instructions/title
+        print(term.enter_fullscreen(),term.move(offset-1,0))
         while True:
+            if title:
+                with term.location(y=0):
+                    print(t.center(t.bold(t.bright_red(title))))
+            with term.location(y=1):
+                print(term.bold(term.blue(term.center("Enter to select, q to cancel."))))
 
             cursy,cursx = term.get_location()
+            if cursy not in range(offset,term.height):
+                term.move(offset,cursx)
             
-            for i in range(0,len(options)):
+            for i in range(0,len(options[:term.height - offset-1])): # Only show as many as can fit on the screen + spacing
                 # Need to compensate for the way the cursor is show on the screen. Hence -1 -offset
                 if cursy-1-offset == i:
                     with term.location(y=i+offset):
-                        print(term.center(term.white_on_black(term.bold(options[i]))))
+                        print(term.center(term.green_on_black(term.bold(options[i]))))
                 else:
                     with term.location(y=i+offset):
                         print(term.center(options[i]))
             
             with term.cbreak():
                 key = term.inkey(1)
-                if key == "q":
+                if key == "q" or key.name == "KEY_F2":
+                    print(term.exit_fullscreen())
                     return False,False
                 elif key.name == "KEY_UP" or key == 'k':
-                    print(term.move_up(),end="")
+                    if cursy-1 > offset:
+                        print(term.move_up(),end="")
                 elif key.name == "KEY_DOWN" or key == 'j':
-                    print(term.move_down(),end="")
+                    if cursy+1 < t.height and cursy < len(options)+offset:
+                        print(term.move_down(),end="")
                 elif key.name == "KEY_ENTER" or key == ' ':
                     print(term.exit_fullscreen())
                     return options[cursy-1-offset],cursy-1-offset
@@ -341,6 +352,9 @@ if parg.playing:
     sys.exit(0)
 if parg.testing:
     print('yay')
+    v = Views(kodi)
+    print(v.term.enter_fullscreen())
+    v.header()
     sys.exit(0)
 
 
