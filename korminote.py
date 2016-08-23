@@ -2,7 +2,7 @@
 
 __name__="Charles Schimmelpfennig"
 __license__="Creative Commons by-nc-sa"
-__version__="0.7"
+__version__="0.72"
 __status__="Development"
 
 # imports
@@ -13,9 +13,10 @@ from os import getenv
 from time import  time
 from kodiclient import KodiClient
 import argparse
+from fuzzywuzzy import fuzz, process
 
 class Views:
-    
+
     def __init__(self,kodi):
         self.kodi = kodi
         self.term = Terminal()
@@ -31,6 +32,7 @@ class Views:
         """
         kodi = self.kodi
         t = self.term
+        self.windowID = kodi.getWindowID()
 
         if keyIn == 'q':
             print(t.exit_fullscreen())
@@ -85,6 +87,10 @@ class Views:
             kodi.updateAVLibrary("AudioLibrary")
             with t.location(y=0):
                 print(t.bold(t.center("Updating Audio Library...")))
+        elif keyIn == 'm':
+            self.playByArtist()
+
+
         # Client-side commands
         elif keyIn.name == 'KEY_F1':
             self.helpView()
@@ -102,8 +108,7 @@ class Views:
         t = self.term
         prevTime = time()
         while True:
-            self.windowID = kodi.getWindowID()
-            with t.cbreak(): 
+            with t.cbreak():
                 keyIn = t.inkey(1)
                 if keyIn != '':
                     self.keyParse(keyIn)
@@ -131,6 +136,7 @@ class Views:
         """
         Displays a text prompt and returns whatevever the user entered.
         """
+        t = self.term
         with t.location(x=0,y=ylocation):
             print(t.bold_blue("▒"*(t.width//2)))
         with t.location(x=0,y=ylocation):
@@ -144,26 +150,38 @@ class Views:
         with t.location(y=0):
             print(t.bold(t.bright_red("Korminote")),t.bright_blue_on_white("F1 Help"),t.bright_blue_on_white("F2 Recent Episodes"),t.bright_blue_on_white("F5 Refresh"))
 
+    def playByArtist(self):
+        usrArtist = self.textPrompt("Artist: ")
+        artistDict = {}
+        for x in kodi.getArtists():
+            artistDict[x['artist']] = x['artistid']
+        match = process.extractOne(usrArtist,artistDict.keys())[0]
+        artistID = artistDict[match]
+        albumDict = {}
+        for x in kodi.getAlbums():
+            albumDict[x['title']] = x['artistid']
+        print(albumDict[artistDict[match]])
+
     def nowPlayingView(self):
         """
         Essentially the main loop. Does all the handling for displaying information to the user.
         """
         kodi = self.kodi
         t = self.term
-        
+
         # Upon activating any view, enter fullscreen and clear the old view.
         # This lets us restore previous views or terminal states
         print(t.enter_fullscreen(),t.clear())
         self.header()
 
         while True:
-            
-            # Move the cursor back to "rest." Not all terminals will hid ethe cursor like they sould. 
+
+            # Move the cursor back to "rest." Not all terminals will hid ethe cursor like they sould.
             print(t.move(0,0))
 
             self.playerid = kodi.getPlayerID() ### REQUEST
             self.windowID = kodi.getWindowID() ### REQUEST
-            
+
             # Kodi gives a specific window id for the text entry prompt. If we get that, we know we can send text to it.
             if self.windowID == 10103:
                 kodi.sendText(self.textPrompt())
@@ -181,15 +199,22 @@ class Views:
 
             # If we get something for the playerid, something's playing.
             if self.playerid != -1:
-                self.curProperties = kodi.playerProperties(self.playerid) ### REQUEST
-
+                tempProperties = kodi.playerProperties(self.playerid) ### REQUEST
+                try:
+                    testValue = tempProperties['result']
+                    self.curProperties = tempProperties
+                except: pass
                 totalTime,curTime = kodi.getFormattedTimes(self.curProperties)
 
                 times = "{}/{}".format(totalTime,curTime)
                 title,artist = kodi.getTitle(self.playerid)
                 if title == False: title = "" # Every once in a while a False slips through. It'll only display for a second.
+                if len(title) > t.width:
+                    title = title[:t.width-5]+"..."
 
-                progPerct = self.curProperties['result']['percentage']/100
+                try:
+                    progPerct = self.curProperties['result']['percentage']/100
+                except: pass
                 progWidth = t.width - len(times)
                 progBar = int(progPerct*progWidth)
 
@@ -228,7 +253,6 @@ class Views:
                     playNum = playlistItems.index(title) - 2
                     playlist = playlistItems[playNum:]
 
-
                     for i in playlist[:t.height-7]:
                         with t.location(y=6+playlist.index(i)):
                             if i == title:
@@ -244,8 +268,7 @@ class Views:
                                 print(t.center(t.bold(i)))
                             else:
                                 print(t.center(i))
-        except:
-            pass
+        except: pass
 
     def menuView(self,options,title=False):
         term = self.term
@@ -261,7 +284,7 @@ class Views:
             cursy,cursx = term.get_location()
             if cursy not in range(offset,term.height):
                 term.move(offset,cursx)
-            
+
             for i in range(0,len(options[:term.height - offset-1])): # Only show as many as can fit on the screen + spacing
                 # Need to compensate for the way the cursor is show on the screen. Hence -1 -offset
                 if cursy-1-offset == i:
@@ -270,7 +293,7 @@ class Views:
                 else:
                     with term.location(y=i+offset):
                         print(term.center(options[i]))
-            
+
             with term.cbreak():
                 key = term.inkey(1)
                 if key == "q" or key.name == "KEY_F2":
@@ -307,7 +330,7 @@ class Views:
             print("F5 : Refresh screen")
             print("q : quit")
         while True:
-            with t.cbreak(): 
+            with t.cbreak():
                 keyIn = t.inkey(1)
                 if keyIn == 'q' or keyIn.name == 'KEY_F1' or keyIn.name == "KEY_ENTER":
                     print(t.exit_fullscreen(),t.clear())
@@ -328,6 +351,8 @@ parser.add_argument('-youtube', nargs='?', dest='youtube', help="Play a youtube 
 parser.add_argument('-playing', action='store_true', dest='playing', help="Output currently playing title and (if available) artist in TITLE - ARTIST format.")
 parser.add_argument('-t', action='store_true', dest='testing', help="Testing random functionalities.")
 
+parser.add_argument('-notif', nargs=3, dest='notif', help="Send a notification. -notification TITLE MESSAGE DISPLAYTIME(in milliseconds)")
+
 parg = parser.parse_args()
 
 if parg.host:
@@ -344,23 +369,30 @@ if parg.youtube:
     except (OSError,ConnectionError):
         print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
 if parg.playing:
-    title,artist = kodi.getTitle()
-    if artist != "" and artist != False:
-        print("{} - {}".format(title,artist))
-    elif title != "" and title != False:
-        print(title)
+    try:
+        title,artist = kodi.getTitle()
+        if artist != "" and artist != False:
+            print("{} - {}".format(title,artist))
+        elif title != "" and title != False:
+            print(title)
+    except: pass
     sys.exit(0)
+
+if parg.notif:
+    try:
+        kodi.sendNotification(parg.notif[0],parg.notif[1],parg.notif[2])
+        sys.exit(0)
+    except:
+        sys.exit(0)
+
 if parg.testing:
-    print('yay')
-    v = Views(kodi)
-    print(v.term.enter_fullscreen())
-    v.header()
+    print(kodi.sendNotification(title="Yay!", message="Yaaaaay"))
     sys.exit(0)
 
 
 try:
     t = Terminal()
-    with t.hidden_cursor(): 
+    with t.hidden_cursor():
         view = Views(kodi)
         view.nowPlayingView()
 except (OSError,ConnectionError):

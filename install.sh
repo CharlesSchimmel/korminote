@@ -28,14 +28,18 @@ install () {
     else
         echo -n "pip3 found..."
         pip3 show blessed >/dev/null 2>&1
-        if [[ $? -ne 0 ]]; then # Pip3 returns 0 if show works; blessed installed
+        if [[ $? -ne 0 ]]; then # Pip3 exits 0 if show works; blessed installed
             echo "Blessed is not installed or I otherwise cannot find it. May I install it for you? [Y/n]"
             read usrIn
             if [[ usrIn -eq '' ]] || [[ usrIn -eq 'y' ]] || [[ usrIn -eq 'Y' ]]; then
                 sudo pip3 install blessed
             else:
-                echo "Blessed for python3 is required for this program. If you believe it is installed outside of pip3, you may continue."
+                echo "Blessed for python3 is required for this program. If you believe it is installed outside of pip3, you may continue. The program will not function without"
+                echo -n "Continue? [y/N]"
                 read usrIn
+                if [[ usrIn -eq '' ]] || [[ usrIn -eq 'n' ]] || [[ usrIn -eq 'N' ]]; then
+                    exit 1
+                fi
             fi
         else
             echo -n "blessed found..."
@@ -83,12 +87,12 @@ uninstall () {
 }
 
 
-if [ "$(id -u)" == "0" ]; then
-	echo "Don't use sudo for this script or it'll install into root's HOME"
-	exit 1
+if [[ $1 == "uninstall" ]] || [[ $1 == "u" ]]; then
+    uninstall
 else
-    if [[ $1 == "uninstall" ]] || [[ $1 == "u" ]]; then
-        uninstall
+    if [ "$(id -u)" == "0" ]; then
+            echo "Don't use sudo for this script or it'll install into root's HOME"
+            exit 1
     else
         install
     fi
