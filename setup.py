@@ -9,13 +9,10 @@ setup(
         url="https://github.com/CharlesSchimmel/korminote",
         description="A full-featured Kodi remote with command or TUI interface",
         long_description=("Korminote is a python program that controls a kodi instance remotely. It has a terminal user interface and a command interface."),
-        classifiers=[
-            'Development Status :: 4 - Beta',
-            'Programming Language :: Python',
-            ],
         license="Creative Commons by-nc-sa",
         packages=['korminote'],
-        install_requires=['requests','blessed'],
-        install_package_data=True
+        scripts=['bin/korminote'],
+        install_requires=['requests','blessed','fuzzywuzzy'],
+        install_package_data=True,
     )
 

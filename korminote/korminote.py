@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
-__name__="Charles Schimmelpfennig"
+__name__="Korminote"
 __license__="Creative Commons by-nc-sa"
 __version__="0.72"
 __status__="Development"
 
 # imports
+from korminote.KodiClient import KodiClient
 from blessed import Terminal
 import sys
 import configparser
 from os import getenv
 from time import  time
-from kodiclient import KodiClient
 import argparse
 from fuzzywuzzy import fuzz, process
+import pkg_resources
 
 class Views:
 
@@ -338,9 +339,13 @@ class Views:
 
 """ Set Constants """
 config = configparser.ConfigParser() #initializing config parser object
-config.read('{}/.korminote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
-displayPlaylist = config['settings']['playlist']
-kodi = KodiClient(config['settings']['host'],config['settings']['port'])
+try: 
+    config.read('{}/.korminote/config.ini'.format(getenv("HOME"))) #sending config file to config parser object
+    displayPlaylist = config['settings']['playlist']
+    kodi = KodiClient(config['settings']['host'],config['settings']['port'])
+except (KeyError):
+    displayPlaylist = True
+    kodi = KodiClient("127.0.0.1","8080")
 
 """ Parse arguments """
 parser=argparse.ArgumentParser(description="Korminote: A terminal remote client for Kodi!")
@@ -389,14 +394,17 @@ if parg.testing:
     print(kodi.sendNotification(title="Yay!", message="Yaaaaay"))
     sys.exit(0)
 
+def start():
+    try:
+        t = Terminal()
+        with t.hidden_cursor():
+            view = Views(kodi)
+            view.nowPlayingView()
+    except (OSError,ConnectionError):
+        print(t.exit_fullscreen())
+        print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+    except KeyboardInterrupt:
+        print(t.exit_fullscreen)
 
-try:
-    t = Terminal()
-    with t.hidden_cursor():
-        view = Views(kodi)
-        view.nowPlayingView()
-except (OSError,ConnectionError):
-    print(t.exit_fullscreen())
-    print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
-except KeyboardInterrupt:
-    print(t.exit_fullscreen)
+if __name__ == "__main__":
+    start()

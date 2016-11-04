@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-__name__="Charles Schimmelpfennig"
+__name__="KodiClient"
 __license__="Creative Commons by-nc-sa"
 __version__="0.72"
 __status__="Development"
