@@ -6,7 +6,7 @@
 # See http://wiki.archlinux.org/index.php/Python_Package_Guidelines for more
 # information on Python packaging.
 
-# Maintainer: Your Name <youremail@domain.com>
+# Maintainer: Charles Schimmelpfennig <charlesschimmel@gmail.com>
 pkgname=korminote
 pkgver=0.7
 pkgrel=1
@@ -15,7 +15,7 @@ arch=('any')
 url="http://github.com/CharlesSchimmel/korminote"
 license=('Creative Commons by-nc-sa')
 groups=()
-depends=('python' 'python-requests' 'python-pip')
+depends=('python' 'python-requests' 'python-pip' 'python-setuptools')
 makedepends=('git' 'python-setuptools')
 provides=('korminote')
 conflicts=('korminote')
@@ -23,15 +23,17 @@ replaces=('korminote')
 backup=()
 options=(!emptydirs)
 # install=
-source=("git://github.com/charlesschimmel/korminote")
+source=("git://github.com/CharlesSchimmel/korminote.git#branch=korminote-testing")
 md5sums=('SKIP')
 
-#build() {
-#}
+# build() {
+#   cd "$srcdir"
+# }
 
 package() {
   cd "$srcdir/$pkgname"
-  python3 setup.py install --root="$pkgdir/" --optimize=1
-  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  python setup.py install --root="$pkgname/" --optimize=1
+  mkdir $HOME/.korminote
+  cp $srcdir/$pkgname/$pkgname/config.ini $HOME/.korminote/
 }
 
