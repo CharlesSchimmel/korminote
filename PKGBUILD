@@ -23,7 +23,7 @@ replaces=('korminote')
 backup=()
 options=(!emptydirs)
 # install=
-source=("git://github.com/CharlesSchimmel/korminote.git#branch=korminote-testing")
+source=("git://github.com/CharlesSchimmel/korminote.git")
 md5sums=('SKIP')
 
 # build() {
@@ -33,7 +33,11 @@ md5sums=('SKIP')
 package() {
   cd "$srcdir/$pkgname"
   python setup.py install --root="$pkgname/" --optimize=1
-  mkdir $HOME/.korminote
-  cp $srcdir/$pkgname/$pkgname/config.ini $HOME/.korminote/
+  if ! [[ -e $HOME/.korminote ]]; then 
+    mkdir $HOME/.korminote
+  fi
+  if ! [[ -e $HOME/.korminote/config.ini ]]; then
+    cp $srcdir/$pkgname/$pkgname/config.ini $HOME/.korminote/
+  fi
 }
 
