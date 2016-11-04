@@ -4,7 +4,7 @@
 
 Korminote: A terminal remote for Kodi!
 
-Install with "install.sh". Uninstall with "install.sh uninstall".
+Install with "install.sh" or "python3 setup.py install" or on Arch Linux: "makepkg -s". Uninstall with "install.sh uninstall".
 
 Usage:
 
