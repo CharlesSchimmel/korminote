@@ -1,6 +1,6 @@
 # Korminote
 
-## Version: 0.71
+## Version: 0.72
 
 Korminote: A terminal remote for Kodi!
 
