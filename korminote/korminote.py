@@ -2,7 +2,7 @@
 
 __name__="Korminote"
 __license__="Creative Commons by-nc-sa"
-__version__="0.72"
+__version__="0.73"
 __status__="Development"
 
 # imports
@@ -18,9 +18,9 @@ import pkg_resources
 
 class Views:
 
-    def __init__(self,kodi):
+    def __init__(self,kodi,term):
         self.kodi = kodi
-        self.term = Terminal()
+        self.term = term
         self.curProperties = ""
         self.windowID = 0
         self.playerid = 0
@@ -311,6 +311,7 @@ class Views:
                     return options[cursy-1-offset],cursy-1-offset
 
     def helpView(self):
+        t = self.term
         print(t.enter_fullscreen)
         with t.location(y=0):
             print(t.bold(t.blue("Controls:")))
@@ -398,7 +399,7 @@ def start():
     try:
         t = Terminal()
         with t.hidden_cursor():
-            view = Views(kodi)
+            view = Views(kodi,t)
             view.nowPlayingView()
     except (OSError,ConnectionError):
         print(t.exit_fullscreen())

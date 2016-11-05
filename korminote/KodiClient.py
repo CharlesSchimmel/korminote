@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 __name__="KodiClient"
 __license__="Creative Commons by-nc-sa"
-__version__="0.72"
+__version__="0.73"
 __status__="Development"
 
 import requests
 import re
+import json
 
 class KodiClient:
     """
     Contains methods relating to interacting with a Kodi instance's JSON server.
     """
+
 
     def __init__(self,kodiHost="localhost",kodiPort=8080):
         self.host = kodiHost
@@ -18,57 +20,60 @@ class KodiClient:
         self.headers = {'Content-Type': 'application/json'}
         self.curPlayerProperties = {}
 
+    def template_request(self,method,params={}):
+        payload = {"id":"1","jsonrpc":"2.0","method":method,"params":params}
+        payload = json.JSONEncoder().encode(payload)
+        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
+        return r.json()
+
     def inputAction(self,action):
         """
         Sends the given action specified by: http://kodi.wiki/view/JSON-RPC_API/v6#Input.Action
         Left, Right, Up, Down, Back, Pause, etc.
         Returns the server's JSON response.
         """
-        payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.ExecuteAction","params":{"action":"'+action+'"}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+        method = "Input.ExecuteAction"
+        params = {"action":"{}".format(action)}
+        return self.template_request(method,params)
 
     def updateAVLibrary(self,library):
         """
         Given the specified library type (VideoLibrary or AudioLibrary), asks the kodi server to update it.
         Returns the server's JSON response.
         """
-        payload = '{"id": "1", "jsonrpc": "2.0", "method": "'+library+'.Scan"}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+        method = "{}.Scan".format(library)
+        return self.template_request(method)
 
     def cleanAVLibrary(self,library):
         """
         Given the specified library type (VideoLibrary or AudioLibrary), asks the kodi server to clean it.
         Returns the server's JSON response.
         """
-        payload = '{"id": "1", "jsonrpc": "2.0", "method": "'+library+'.Clean"}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+        method = "{}.Clean".format(library)
+        return self.template_request(method)
 
     def sendText(self,text):
         """
         Takes a given string and sends it as input.
         Returns the server's JSON response.
         """
-        payload = '{"id": "1", "jsonrpc": "2.0", "method": "Input.SendText","params":{"text":"'+text+'"}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return(r.json())
+        method = "Input.SendText"
+        params = {"text":"{}".format(text)}
+        return self.template_request(method,params)
 
     def getWindowID(self):
         """
         Queries the server and returns the currently active window number.
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "GUI.GetProperties", "params":{"properties":["currentwindow"]} }'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()['result']['currentwindow']['id']
+        method = "GUI.GetProperties"
+        params = {"properties":["currentwindow"]}
+        return self.template_request(method,params)['result']['currentwindow']['id']
 
     def updateCurPlayerProperties(self,playerid=-1):
         """
         Currently not useful. I think it is better to store the properties outside the object. Not sure.
         That way, the user can decide whether to specify them everytime if they would like rather than expect them to update the local object.
         """
-        
         if playerid == -1:
             self.curPlayerProperties = self.playerProperties()
         else:
@@ -80,19 +85,19 @@ class KodiClient:
         """
         if playerid == -1:
             playerid = self.getPlayerID()
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetProperties", "params":{"playerid":'+playerid+',"properties":["playlistid","time","totaltime","percentage","type","speed"]} }'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+
+        method = "Player.GetProperties"
+        params = {"playerid":playerid,"properties":["playlistid","time","totaltime","percentage","type","speed"]}
+        return self.template_request(method,params)
 
     def getPlayerID(self):
         """
         Queries the server and returns the player id as a string (0-2).
         If there's none to be found (ie nothing is playing) returns -1.
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetActivePlayers" }'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
+        method = "Player.GetActivePlayers"
         try:
-            return str(r.json()['result'][0]['playerid'])
+            return str(self.template_request(method)['result'][0]['playerid'])
         except (IndexError):
             return -1 # The player ID can be 0 so we can't use False
 
@@ -105,9 +110,10 @@ class KodiClient:
         if playerid == -1:
             playerid = self.getPlayerID()
         try:
-            payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.GetItem", "params":{"playerid":'+playerid+',"properties":["title","artist","showtitle"]} }'
-            r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-            title = r.json()['result']['item']['title']
+            method = "Player.GetItem"
+            params = {"playerid":playerid,"properties":["title","artist","showtitle"]}
+            result = self.template_request(method,params)
+            title = result['result']['item']['title']
             if 'showtitle' not in r.json()['result']['item']:
                 artist = r.json()['result']['item']['artist'][0]
             else:
@@ -142,42 +148,39 @@ class KodiClient:
         Dictionaries contain keys: episodeid, label, episode title, file, showtitle
         Returns false if no episodes are found.
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetRecentlyAddedEpisodes", "params":{"properties":["title","showtitle","file"]}} '
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
+        method = "VideoLibrary.GetRecentlyAddedEpisodes"
+        params = {"properties":["title","showtitle","file"]}
+        result = self.template_request(method,params)
         try:
-            return r.json()['result']['episodes']
+            return result['result']['episodes']
         except (IndexError,KeyError):
             return False
 
     def getArtists(self):
         """
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "AudioLibrary.GetArtists" } '
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
+        method = "AudioLibrary.GetArtists"
         try:
-            return r.json()['result']['artists']
+            return self.template_request(method)['result']['artists']
         except (IndexError,KeyError):
             return False
 
     def getAlbums(self):
         """
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "AudioLibrary.GetAlbums", "params":{"properties":["artistid","title","artist"]}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
+        method = "AudioLibrary.GetAlbums"
+        params = {"properties":["artistid","title","artist"]}
         try:
-            return r.json()['result']['albums']
+            return self.template_request(method,params)['result']['albums']
         except (IndexError,KeyError):
             return False
 
     def sendNotification(self,title='',message='',displaytime=5000):
-        title = str(title)
-        message = str(message)
-        displaytime=str(displaytime)
         """
         """
-        payload = '{"id":1, "jsonrpc": "2.0", "method":"GUI.ShowNotification", "params":{"title":"'+title+'","message":"'+message+'","displaytime":'+displaytime+'}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+        method = "GUI.ShowNotification"
+        params = {"title":title,"message":message,"displaytime":displaytime}
+        return self.template_request(method,params)
 
     def playYoutube(self,yturl):
         """
@@ -200,13 +203,13 @@ class KodiClient:
         """
 
         if not curProperties:
-            playlistid = str(self.playerProperties()['result']['playlistid'])
+            playlistid = self.playerProperties()['result']['playlistid']
         else:
-            playlistid = str(curProperties['result']['playlistid'])
+            playlistid = curProperties['result']['playlistid']
         try:
-            payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Playlist.GetItems", "params":{"playlistid":'+playlistid+',"properties":["title"]} }'
-            r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-            return r.json()['result']['items']
+            method = "Playlist.GetItems"
+            params = {"playlistid":playlistid,"properties":["title"]}
+            return self.template_request(method,params)['result']['items']
         except:
             return False
 
@@ -214,16 +217,15 @@ class KodiClient:
         """
         When given the unique ID of an episode in the library, it returns information about that episode.
         """
-        episodeid = str(episodeid)
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodeDetails", "params":{"episodeid":'+episodeid+',"properties":["file"]} }'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()['result']['episodedetails']
+        method = "VideoLibrary.GetEpisodeDetails"
+        params = {"episodeid":episodeid,"properties":["file"]}
+        return self.template_request(method,params)['result']['episodedetails']
 
     def openFile(self,targetFile):
         """
         Opens a file for playback given a path. This path can also be one of the plugin paths like plugin://plugin.video.youtube etc
         Returns the server's JSON response.
         """
-        payload = '{ "id": "1", "jsonrpc": "2.0", "method": "Player.Open", "params":{"item":{"file":"'+targetFile+'"}}}'
-        r = requests.post("http://{}:{}/jsonrpc".format(self.host,self.port), data=payload, headers=self.headers)
-        return r.json()
+        method = "Player.Open"
+        params = {"item":{"file":targetFile}}
+        return self.template_request(method,params)
