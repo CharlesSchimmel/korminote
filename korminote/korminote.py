@@ -88,8 +88,8 @@ class Views:
             kodi.updateAVLibrary("AudioLibrary")
             with t.location(y=0):
                 print(t.bold(t.center("Updating Audio Library...")))
-        elif keyIn == 'm':
-            self.playByArtist()
+        # elif keyIn == 'm':
+        #     self.playByArtist()
 
 
         # Client-side commands
