@@ -6,7 +6,10 @@ __version__="0.73"
 __status__="Development"
 
 # imports
-from korminote.KodiClient import KodiClient
+try: 
+    from korminote.KodiClient import KodiClient
+except:
+    from KodiClient import KodiClient
 from blessed import Terminal
 import sys
 import configparser
@@ -215,7 +218,8 @@ class Views:
 
                 try:
                     progPerct = self.curProperties['result']['percentage']/100
-                except: pass
+                except: 
+                    progPerct = 0.0
                 progWidth = t.width - len(times)
                 progBar = int(progPerct*progWidth)
 
@@ -405,3 +409,4 @@ if parg.notif:
 
 if __name__ == "__main__":
     start()
+start()

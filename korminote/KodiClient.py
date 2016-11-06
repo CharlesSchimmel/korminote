@@ -97,7 +97,7 @@ class KodiClient:
         """
         method = "Player.GetActivePlayers"
         try:
-            return str(self.template_request(method)['result'][0]['playerid'])
+            return self.template_request(method)['result'][0]['playerid']
         except (IndexError):
             return -1 # The player ID can be 0 so we can't use False
 
@@ -114,10 +114,10 @@ class KodiClient:
             params = {"playerid":playerid,"properties":["title","artist","showtitle"]}
             result = self.template_request(method,params)
             title = result['result']['item']['title']
-            if 'showtitle' not in r.json()['result']['item']:
-                artist = r.json()['result']['item']['artist'][0]
+            if 'showtitle' not in result['result']['item']:
+                artist = result['result']['item']['artist'][0]
             else:
-                artist = r.json()['result']['item']['showtitle']
+                artist = result['result']['item']['showtitle']
             return title,artist
         except:
             return False,False
