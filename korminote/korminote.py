@@ -2,11 +2,14 @@
 
 __name__="Korminote"
 __license__="Creative Commons by-nc-sa"
-__version__="0.72"
+__version__="0.73"
 __status__="Development"
 
 # imports
-from korminote.KodiClient import KodiClient
+try: 
+    from korminote.KodiClient import KodiClient
+except:
+    from KodiClient import KodiClient
 from blessed import Terminal
 import sys
 import configparser
@@ -18,9 +21,9 @@ import pkg_resources
 
 class Views:
 
-    def __init__(self,kodi):
+    def __init__(self,kodi,term):
         self.kodi = kodi
-        self.term = Terminal()
+        self.term = term
         self.curProperties = ""
         self.windowID = 0
         self.playerid = 0
@@ -88,8 +91,8 @@ class Views:
             kodi.updateAVLibrary("AudioLibrary")
             with t.location(y=0):
                 print(t.bold(t.center("Updating Audio Library...")))
-        elif keyIn == 'm':
-            self.playByArtist()
+        # elif keyIn == 'm':
+        #     self.playByArtist()
 
 
         # Client-side commands
@@ -215,7 +218,8 @@ class Views:
 
                 try:
                     progPerct = self.curProperties['result']['percentage']/100
-                except: pass
+                except: 
+                    progPerct = 0.0
                 progWidth = t.width - len(times)
                 progBar = int(progPerct*progWidth)
 
@@ -278,7 +282,7 @@ class Views:
         while True:
             if title:
                 with term.location(y=0):
-                    print(t.center(t.bold(t.bright_red(title))))
+                    print(term.center(term.bold(term.bright_red(title))))
             with term.location(y=1):
                 print(term.bold(term.blue(term.center("Enter to select, q to cancel."))))
 
@@ -304,13 +308,14 @@ class Views:
                     if cursy-1 > offset:
                         print(term.move_up(),end="")
                 elif key.name == "KEY_DOWN" or key == 'j':
-                    if cursy+1 < t.height and cursy < len(options)+offset:
+                    if cursy+1 < term.height and cursy < len(options)+offset:
                         print(term.move_down(),end="")
                 elif key.name == "KEY_ENTER" or key == ' ':
                     print(term.exit_fullscreen())
                     return options[cursy-1-offset],cursy-1-offset
 
     def helpView(self):
+        t = self.term
         print(t.enter_fullscreen)
         with t.location(y=0):
             print(t.bold(t.blue("Controls:")))
@@ -336,6 +341,18 @@ class Views:
                 if keyIn == 'q' or keyIn.name == 'KEY_F1' or keyIn.name == "KEY_ENTER":
                     print(t.exit_fullscreen(),t.clear())
                     break
+
+def start():
+    try:
+        t = Terminal()
+        with t.hidden_cursor():
+            view = Views(kodi,t)
+            view.nowPlayingView()
+    except (OSError,ConnectionError):
+        print(t.exit_fullscreen())
+        print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+    except KeyboardInterrupt:
+        print(t.exit_fullscreen)
 
 """ Set Constants """
 config = configparser.ConfigParser() #initializing config parser object
@@ -390,21 +407,6 @@ if parg.notif:
     except:
         sys.exit(0)
 
-if parg.testing:
-    print(kodi.sendNotification(title="Yay!", message="Yaaaaay"))
-    sys.exit(0)
-
-def start():
-    try:
-        t = Terminal()
-        with t.hidden_cursor():
-            view = Views(kodi)
-            view.nowPlayingView()
-    except (OSError,ConnectionError):
-        print(t.exit_fullscreen())
-        print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
-    except KeyboardInterrupt:
-        print(t.exit_fullscreen)
-
 if __name__ == "__main__":
     start()
+start()
