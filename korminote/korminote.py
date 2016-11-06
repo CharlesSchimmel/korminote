@@ -409,4 +409,3 @@ if parg.notif:
 
 if __name__ == "__main__":
     start()
-start()
