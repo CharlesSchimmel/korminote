@@ -278,7 +278,7 @@ class Views:
         while True:
             if title:
                 with term.location(y=0):
-                    print(t.center(t.bold(t.bright_red(title))))
+                    print(term.center(term.bold(term.bright_red(title))))
             with term.location(y=1):
                 print(term.bold(term.blue(term.center("Enter to select, q to cancel."))))
 
@@ -304,7 +304,7 @@ class Views:
                     if cursy-1 > offset:
                         print(term.move_up(),end="")
                 elif key.name == "KEY_DOWN" or key == 'j':
-                    if cursy+1 < t.height and cursy < len(options)+offset:
+                    if cursy+1 < term.height and cursy < len(options)+offset:
                         print(term.move_down(),end="")
                 elif key.name == "KEY_ENTER" or key == ' ':
                     print(term.exit_fullscreen())
@@ -337,6 +337,18 @@ class Views:
                 if keyIn == 'q' or keyIn.name == 'KEY_F1' or keyIn.name == "KEY_ENTER":
                     print(t.exit_fullscreen(),t.clear())
                     break
+
+def start():
+    try:
+        t = Terminal()
+        with t.hidden_cursor():
+            view = Views(kodi,t)
+            view.nowPlayingView()
+    except (OSError,ConnectionError):
+        print(t.exit_fullscreen())
+        print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
+    except KeyboardInterrupt:
+        print(t.exit_fullscreen)
 
 """ Set Constants """
 config = configparser.ConfigParser() #initializing config parser object
@@ -390,22 +402,6 @@ if parg.notif:
         sys.exit(0)
     except:
         sys.exit(0)
-
-if parg.testing:
-    print(kodi.sendNotification(title="Yay!", message="Yaaaaay"))
-    sys.exit(0)
-
-def start():
-    try:
-        t = Terminal()
-        with t.hidden_cursor():
-            view = Views(kodi,t)
-            view.nowPlayingView()
-    except (OSError,ConnectionError):
-        print(t.exit_fullscreen())
-        print("Can't connect to Kodi host. Is it running? Are host '{}' and port '{}' correct?".format(kodi.host,kodi.port))
-    except KeyboardInterrupt:
-        print(t.exit_fullscreen)
 
 if __name__ == "__main__":
     start()
