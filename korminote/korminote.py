@@ -10,6 +10,7 @@ try:
     from korminote.KodiClient import KodiClient
 except:
     from KodiClient import KodiClient
+
 from blessed import Terminal
 import sys
 import configparser
